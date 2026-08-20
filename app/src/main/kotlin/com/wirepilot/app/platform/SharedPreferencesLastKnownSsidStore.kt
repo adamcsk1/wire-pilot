@@ -18,4 +18,10 @@ class SharedPreferencesLastKnownSsidStore(
       putString(PreferenceKeys.LAST_KNOWN_SSID, LastKnownSsidCodec.encode(value))
     }
   }
+
+  override fun clear() {
+    preferences.edit {
+      remove(PreferenceKeys.LAST_KNOWN_SSID)
+    }
+  }
 }

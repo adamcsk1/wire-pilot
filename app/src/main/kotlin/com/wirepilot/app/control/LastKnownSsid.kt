@@ -3,7 +3,7 @@ package com.wirepilot.app.control
 import com.wirepilot.app.data.LastKnownSsidStore
 import com.wirepilot.app.data.StoredLastKnownSsid
 
-/** Last readable SSID is kept until a different readable SSID is stored. No TTL. */
+/** Last readable SSID applies only while still inside [TTL_MILLIS]. */
 class LastKnownSsid(
   private val store: LastKnownSsidStore,
   private val clock: () -> Long = { 0L },
@@ -26,6 +26,15 @@ class LastKnownSsid(
   }
 
   fun current(): String? {
-    return store.read()?.ssid
+    val stored = store.read() ?: return null
+    if (clock() - stored.atMillis > TTL_MILLIS) {
+      store.clear()
+      return null
+    }
+    return stored.ssid
+  }
+
+  companion object {
+    const val TTL_MILLIS = 60_000L
   }
 }

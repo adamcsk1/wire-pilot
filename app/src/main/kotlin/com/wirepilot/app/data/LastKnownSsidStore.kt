@@ -8,6 +8,7 @@ data class StoredLastKnownSsid(
 interface LastKnownSsidStore {
   fun read(): StoredLastKnownSsid?
   fun write(value: StoredLastKnownSsid)
+  fun clear()
 }
 
 object LastKnownSsidCodec {

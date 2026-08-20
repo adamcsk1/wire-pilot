@@ -14,6 +14,10 @@ class LastKnownSsidTest {
     override fun write(value: StoredLastKnownSsid) {
       this.value = value
     }
+
+    override fun clear() {
+      value = null
+    }
   }
 
   @Test
@@ -30,12 +34,25 @@ class LastKnownSsidTest {
   }
 
   @Test
-  fun doesNotExpireWithTime() {
+  fun expiresAfterTtl() {
     var now = 1_000L
     val store = MemoryStore()
     val cache = LastKnownSsid(store = store, clock = { now })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
-    now += 30L * 24 * 60 * 60 * 1000
+    now += LastKnownSsid.TTL_MILLIS + 1
+    assertEquals(null, cache.current())
+    assertEquals(null, store.value)
+    val settling = cache.takeIfSettling(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
+    assertEquals(NetworkKind.WIFI_SETTLING, settling.kind)
+  }
+
+  @Test
+  fun stillAppliesInsideTtl() {
+    var now = 1_000L
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { now })
+    cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
+    now += LastKnownSsid.TTL_MILLIS
     assertEquals("Home", cache.current())
   }
 
