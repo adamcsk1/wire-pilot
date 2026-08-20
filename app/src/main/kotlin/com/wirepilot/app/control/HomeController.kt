@@ -115,6 +115,7 @@ class HomeController(
     pauseAlarms.cancel()
     log.record(LogKind.DISABLE, "always")
     syncWatching()
+    applyRunner.applyNow("disable")
   }
 
   fun pauseFor(option: PauseOption) {
@@ -128,6 +129,7 @@ class HomeController(
     }
     log.record(LogKind.PAUSE, option.name)
     syncWatching()
+    applyRunner.applyNow("pause")
   }
 
   fun setConnectOnMobile(enabled: Boolean) {

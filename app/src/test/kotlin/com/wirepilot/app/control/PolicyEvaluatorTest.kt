@@ -12,12 +12,21 @@ class PolicyEvaluatorTest {
   )
 
   @Test
-  fun skipWhenControlDisabled() {
+  fun downWhenControlDisabled() {
     val decision = PolicyEvaluator.decide(
       enabled.copy(enabled = false),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
-    assertEquals(PolicyDecision.Skip(SkipReason.CONTROL_DISABLED), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
+  }
+
+  @Test
+  fun skipWhenControlDisabledAndTunnelBlank() {
+    val decision = PolicyEvaluator.decide(
+      enabled.copy(enabled = false, tunnelName = ""),
+      NetworkSnapshot(NetworkKind.MOBILE),
+    )
+    assertEquals(PolicyDecision.Skip(SkipReason.BLANK_TUNNEL_NAME), decision)
   }
 
   @Test
@@ -75,12 +84,12 @@ class PolicyEvaluatorTest {
   }
 
   @Test
-  fun skipOnMobileWhenFlagOff() {
+  fun downOnMobileWhenFlagOff() {
     val decision = PolicyEvaluator.decide(
       enabled.copy(connectOnMobile = false),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
-    assertEquals(PolicyDecision.Skip(SkipReason.MOBILE_DISABLED), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
   }
 
   @Test
@@ -106,7 +115,7 @@ class PolicyEvaluatorTest {
       PolicyEvaluator.decide(enabled, NetworkSnapshot(NetworkKind.OTHER)),
     )
     assertEquals(
-      PolicyDecision.Skip(SkipReason.MOBILE_DISABLED),
+      PolicyDecision.Apply(TunnelCommand.DOWN),
       PolicyEvaluator.decide(enabled.copy(connectOnMobile = false), NetworkSnapshot(NetworkKind.OTHER)),
     )
   }

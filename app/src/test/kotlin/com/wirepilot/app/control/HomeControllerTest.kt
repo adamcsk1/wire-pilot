@@ -65,12 +65,20 @@ class HomeControllerTest {
   }
 
   @Test
-  fun viewStateDisablesApplyNowWhenSkipped() {
+  fun viewStateAppliesDownWhenDisabled() {
     val (home) = controller(StoredControl(enabled = false, tunnelName = "office"))
+    val state = home.viewState()
+    assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
+    assertTrue(state.applyNow.enabled)
+  }
+
+  @Test
+  fun viewStateDisablesApplyNowWhenTunnelBlank() {
+    val (home) = controller(StoredControl(enabled = false, tunnelName = ""))
     val state = home.viewState()
     assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
     assertFalse(state.applyNow.enabled)
-    assertEquals(SkipReason.CONTROL_DISABLED, state.applyNow.skipReason)
+    assertEquals(SkipReason.BLANK_TUNNEL_NAME, state.applyNow.skipReason)
   }
 
   @Test
@@ -204,26 +212,50 @@ class HomeControllerTest {
   }
 
   @Test
-  fun disableForeverCancelsAlarm() {
+  fun disableForeverCancelsAlarmAndAppliesDown() {
     val log = RecordingLog()
-    val (home, store, alarms) = controller(log = log)
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val alarms = RecordingPauseAlarm()
+    val tunnel = RecordingTunnel()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel, log),
+      pauseAlarms = alarms,
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+    )
     home.disableControlForever()
     assertEquals(false, store.read().enabled)
     assertEquals(null, store.read().pausedUntilEpochMillis)
     assertEquals(1, alarms.cancelCount)
     assertEquals(LogKind.DISABLE, log.entries.first().first)
     assertEquals("always", log.entries.first().second)
+    assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
   }
 
   @Test
-  fun timedPauseSchedulesAlarm() {
+  fun timedPauseSchedulesAlarmAndAppliesDown() {
     val log = RecordingLog()
-    val (home, store, alarms) = controller(log = log)
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val alarms = RecordingPauseAlarm()
+    val tunnel = RecordingTunnel()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel, log),
+      pauseAlarms = alarms,
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+    )
     home.pauseFor(PauseOption.HOURS_1)
     assertEquals(false, store.read().enabled)
     assertEquals(now + PauseOption.HOURS_1.durationMillis!!, alarms.scheduledAt)
     assertEquals(LogKind.PAUSE, log.entries.first().first)
     assertEquals("HOURS_1", log.entries.first().second)
+    assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
   }
 
   @Test

@@ -7,11 +7,11 @@ object PolicyEvaluator {
     control: StoredControl,
     network: NetworkSnapshot,
   ): PolicyDecision {
-    if (!control.enabled) {
-      return PolicyDecision.Skip(SkipReason.CONTROL_DISABLED)
-    }
     if (control.tunnelName.isBlank()) {
       return PolicyDecision.Skip(SkipReason.BLANK_TUNNEL_NAME)
+    }
+    if (!control.enabled) {
+      return PolicyDecision.Apply(TunnelCommand.DOWN)
     }
     return when (network.kind) {
       NetworkKind.WIFI -> decideWifi(control, network)
@@ -32,7 +32,7 @@ object PolicyEvaluator {
 
   private fun decideMobile(control: StoredControl): PolicyDecision {
     if (!control.connectOnMobile) {
-      return PolicyDecision.Skip(SkipReason.MOBILE_DISABLED)
+      return PolicyDecision.Apply(TunnelCommand.DOWN)
     }
     return PolicyDecision.Apply(TunnelCommand.UP)
   }

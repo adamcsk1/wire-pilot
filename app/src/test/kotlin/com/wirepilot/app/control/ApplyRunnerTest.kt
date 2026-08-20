@@ -45,8 +45,24 @@ class ApplyRunnerTest {
   }
 
   @Test
-  fun skipDoesNotSend() {
+  fun sendsDownWhenControlDisabled() {
     val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val tunnel = RecordingTunnel()
+    val runner = ApplyRunner(
+      store = store,
+      clock = { 10L },
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      tunnel = tunnel,
+    )
+
+    runner.applyNow()
+
+    assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
+  }
+
+  @Test
+  fun skipDoesNotSendWhenTunnelBlank() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = ""))
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(
       store = store,
