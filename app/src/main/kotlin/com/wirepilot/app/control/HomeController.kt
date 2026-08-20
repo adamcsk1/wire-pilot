@@ -3,7 +3,12 @@ package com.wirepilot.app.control
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticLogBuffer
 import com.wirepilot.app.data.DiagnosticStore
+import com.wirepilot.app.data.EmptySplitTunnelStore
+import com.wirepilot.app.data.EmptyTunnelCatalog
+import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.StoredControl
+import com.wirepilot.app.data.StoredSplitTunnel
+import com.wirepilot.app.data.TunnelCatalog
 
 class HomeController(
   private val store: ControlStore,
@@ -14,20 +19,33 @@ class HomeController(
   private val diagnostics: DiagnosticStore,
   private val log: DiagnosticLog = NoOpDiagnosticLog,
   private val watching: WatchingServicePort = NoOpWatchingService,
+  private val catalog: TunnelCatalog = EmptyTunnelCatalog,
+  private val splitTunnels: SplitTunnelStore = EmptySplitTunnelStore,
 ) {
   fun viewState(): HomeViewState {
     val resolved = persistResolved()
     val decision = PolicyEvaluator.decide(resolved, network())
     val diagnosticState = diagnostics.read()
     val status = StatusPresenter.present(resolved, clock())
+    val split = splitTunnels.read(resolved.tunnelName)
     return HomeViewState(
       tunnelName = resolved.tunnelName,
+      importedTunnels = catalog.names(),
+      splitTunnelMode = split.mode,
+      splitTunnelPackages = split.packages,
       excludedSsids = resolved.excludedSsids.sorted(),
       status = status,
       applyNow = ApplyNowPresenter.present(decision),
-      loggingEnabled = diagnosticState.enabled,
-      logPreview = LogFormatter.preview(diagnosticState.entries, LOG_PREVIEW_LIMIT),
-      logCopyText = LogFormatter.formatAll(diagnosticState.entries),
+      loggingEnabled = diagnosticState.policyEnabled,
+      policyLoggingEnabled = diagnosticState.policyEnabled,
+      vpnLoggingEnabled = diagnosticState.vpnEnabled,
+      logPreview = LogFormatter.preview(diagnosticState.policyEntries, LOG_PREVIEW_LIMIT),
+      policyLogText = LogFormatter.formatAll(diagnosticState.policyEntries),
+      vpnLogText = LogFormatter.formatAll(diagnosticState.vpnEntries),
+      logCopyText = listOf(
+        LogFormatter.formatAll(diagnosticState.policyEntries),
+        LogFormatter.formatAll(diagnosticState.vpnEntries),
+      ).filter { it.isNotBlank() }.joinToString("\n"),
       connectOnMobile = resolved.connectOnMobile,
       controlSelection = ControlSelectionPresenter.present(status),
     )
@@ -35,7 +53,36 @@ class HomeController(
 
   fun setTunnelName(name: String) {
     val current = persistResolved()
-    store.write(current.copy(tunnelName = name.trim()))
+    val trimmed = name.trim()
+    if (!ConfigZipNames.isValidTunnelName(trimmed) && trimmed.isNotEmpty()) {
+      return
+    }
+    store.write(current.copy(tunnelName = trimmed))
+  }
+
+  fun selectImportedTunnel(name: String) {
+    if (name !in catalog.names()) {
+      return
+    }
+    val previous = persistResolved().tunnelName
+    setTunnelName(name)
+    if (persistResolved().enabled) {
+      applyRunner.applyNow("tunnel-select")
+    } else if (previous.isNotBlank() && previous != name) {
+      applyRunner.force(TunnelCommand.DOWN, "tunnel-switch", previous)
+    }
+  }
+
+  fun setSplitTunnel(mode: SplitTunnelMode, packages: Set<String>) {
+    val tunnelName = persistResolved().tunnelName
+    if (tunnelName.isBlank()) {
+      return
+    }
+    val selection = SplitTunnelPolicy.selection(mode, packages)
+    val storedMode = SplitTunnelPolicy.modeFrom(selection.excludedPackages, selection.includedPackages)
+    val storedPackages = selection.excludedPackages + selection.includedPackages
+    splitTunnels.write(tunnelName, StoredSplitTunnel(storedMode, storedPackages))
+    applyRunner.applyNow("split-tunnel")
   }
 
   fun addExcludedSsid(raw: String): Boolean {
@@ -92,12 +139,42 @@ class HomeController(
     applyRunner.applyNow("apply-now")
   }
 
+  fun connectManually() {
+    if (persistResolved().enabled) {
+      return
+    }
+    applyRunner.force(TunnelCommand.UP, "manual-up")
+  }
+
+  fun disconnectManually() {
+    if (persistResolved().enabled) {
+      return
+    }
+    applyRunner.force(TunnelCommand.DOWN, "manual-down")
+  }
+
   fun setLoggingEnabled(enabled: Boolean) {
-    diagnostics.write(DiagnosticLogBuffer.setEnabled(diagnostics.read(), enabled))
+    setPolicyLoggingEnabled(enabled)
+  }
+
+  fun setPolicyLoggingEnabled(enabled: Boolean) {
+    diagnostics.write(DiagnosticLogBuffer.setPolicyEnabled(diagnostics.read(), enabled))
+  }
+
+  fun setVpnLoggingEnabled(enabled: Boolean) {
+    diagnostics.write(DiagnosticLogBuffer.setVpnEnabled(diagnostics.read(), enabled))
   }
 
   fun clearLogs() {
     diagnostics.write(DiagnosticLogBuffer.clear(diagnostics.read()))
+  }
+
+  fun clearPolicyLogs() {
+    diagnostics.write(DiagnosticLogBuffer.clearPolicy(diagnostics.read()))
+  }
+
+  fun clearVpnLogs() {
+    diagnostics.write(DiagnosticLogBuffer.clearVpn(diagnostics.read()))
   }
 
   companion object {

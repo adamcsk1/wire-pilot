@@ -3,6 +3,9 @@ package com.wirepilot.app.control
 import com.wirepilot.app.data.StoredControl
 import com.wirepilot.app.support.InMemoryControlStore
 import com.wirepilot.app.support.InMemoryDiagnosticStore
+import com.wirepilot.app.support.InMemorySplitTunnelStore
+import com.wirepilot.app.data.StoredSplitTunnel
+import com.wirepilot.app.support.InMemoryTunnelCatalog
 import com.wirepilot.app.support.RecordingLog
 import com.wirepilot.app.support.RecordingPauseAlarm
 import com.wirepilot.app.support.RecordingTunnel
@@ -87,6 +90,94 @@ class HomeControllerTest {
   }
 
   @Test
+  fun rejectsInvalidTunnelName() {
+    val (home, store) = controller(StoredControl(tunnelName = "office"))
+    home.setTunnelName("bad/name")
+    assertEquals("office", store.read().tunnelName)
+  }
+
+  @Test
+  fun selectImportedTunnelApplies() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "[Interface]\n"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    home.selectImportedTunnel("missing")
+    assertEquals("office", store.read().tunnelName)
+    home.selectImportedTunnel("HomeVPN")
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+  }
+
+  @Test
+  fun selectImportedTunnelWhileOffDownsPrevious() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x", "HomeVPN" to "y"))
+    val tunnel = RecordingTunnel()
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel, log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    home.selectImportedTunnel("HomeVPN")
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
+  }
+
+  @Test
+  fun setSplitTunnelPersistsAndApplies() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val splits = InMemorySplitTunnelStore()
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      splitTunnels = splits,
+    )
+    home.setSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo"))
+    assertEquals(SplitTunnelMode.EXCLUDE_APPS, splits.read("office").mode)
+    assertEquals(setOf("com.foo"), splits.read("office").packages)
+    assertTrue(log.entries.any { it.second.contains("trigger=split-tunnel") })
+  }
+
+  @Test
+  fun setSplitTunnelIgnoredWhenNoTunnel() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val splits = InMemorySplitTunnelStore()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      splitTunnels = splits,
+    )
+    home.setSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo"))
+    assertEquals(StoredSplitTunnel(), splits.read(""))
+  }
+
+  @Test
   fun addExcludedSsidReturnsFalseWhenUnchanged() {
     val (home) = controller(StoredControl(excludedSsids = setOf("Home")))
     assertFalse(home.addExcludedSsid("  "))
@@ -120,7 +211,8 @@ class HomeControllerTest {
     assertEquals(false, store.read().enabled)
     assertEquals(null, store.read().pausedUntilEpochMillis)
     assertEquals(1, alarms.cancelCount)
-    assertEquals(listOf(LogKind.DISABLE to "always"), log.entries)
+    assertEquals(LogKind.DISABLE, log.entries.first().first)
+    assertEquals("always", log.entries.first().second)
   }
 
   @Test
@@ -130,7 +222,8 @@ class HomeControllerTest {
     home.pauseFor(PauseOption.HOURS_1)
     assertEquals(false, store.read().enabled)
     assertEquals(now + PauseOption.HOURS_1.durationMillis!!, alarms.scheduledAt)
-    assertEquals(listOf(LogKind.PAUSE to "HOURS_1"), log.entries)
+    assertEquals(LogKind.PAUSE, log.entries.first().first)
+    assertEquals("HOURS_1", log.entries.first().second)
   }
 
   @Test
@@ -172,6 +265,28 @@ class HomeControllerTest {
     assertFalse(home.viewState().loggingEnabled)
     home.clearLogs()
     assertEquals("", home.viewState().logCopyText)
+  }
+
+  @Test
+  fun manualConnectOnlyWhenPolicyOff() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val tunnel = RecordingTunnel()
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel, log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+    )
+    home.connectManually()
+    home.disconnectManually()
+    assertEquals(listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.DOWN), tunnel.commands)
+    store.write(store.read().copy(enabled = true))
+    home.connectManually()
+    assertEquals(2, tunnel.commands.size)
   }
 
   @Test

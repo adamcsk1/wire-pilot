@@ -5,6 +5,7 @@ enum class SystemSettingsTarget {
   BATTERY_OPTIMIZATION,
   UNUSED_APPS,
   LOCATION,
+  VPN,
 }
 
 object SystemSettingsCatalog {
@@ -13,6 +14,7 @@ object SystemSettingsCatalog {
     SystemSettingsTarget.BATTERY_OPTIMIZATION,
     SystemSettingsTarget.UNUSED_APPS,
     SystemSettingsTarget.LOCATION,
+    SystemSettingsTarget.VPN,
   )
 
   fun fallback(target: SystemSettingsTarget): SystemSettingsTarget? {

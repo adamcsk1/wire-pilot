@@ -59,12 +59,13 @@
             android:layout_marginTop="8dp"
             android:orientation="vertical" />
 
-          <com.google.android.material.button.MaterialButton
-            android:id="@+id/openWireGuardButton"
+          <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/open_wireguard" />
+            android:text="@string/always_on_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 
@@ -128,6 +129,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/open_location_settings" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/vpnSettingsButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/open_vpn_settings" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

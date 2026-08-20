@@ -20,8 +20,11 @@ import com.wirepilot.app.control.StatusPresenter
 import com.wirepilot.app.control.UnreadableRetryPolicy
 import com.wirepilot.app.control.WatchingPolicy
 import com.wirepilot.app.control.WatchingServicePort
+import com.wireguard.android.backend.GoBackend
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticStore
+import com.wirepilot.app.data.SplitTunnelStore
+import com.wirepilot.app.data.TunnelCatalog
 
 class AppContainer(
   context: Context,
@@ -30,19 +33,25 @@ class AppContainer(
   private val preferences = appContext.getSharedPreferences(PreferenceKeys.FILE, Context.MODE_PRIVATE)
   val store: ControlStore = SharedPreferencesControlStore(preferences)
   val diagnostics: DiagnosticStore = SharedPreferencesDiagnosticStore(preferences)
+  val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
+  val splitTunnels: SplitTunnelStore = SharedPreferencesSplitTunnelStore(preferences)
+  val goBackend = GoBackend(appContext)
   val inventory = NetworkInventory()
   val ssidReader = SsidReader(
     inventory = inventory,
     connectivityManager = appContext.getSystemService(android.net.ConnectivityManager::class.java),
     wifiManager = appContext.getSystemService(android.net.wifi.WifiManager::class.java),
     readiness = { SsidReadinessReader.read(appContext) },
-    lastKnown = LastKnownSsid(clock = { System.currentTimeMillis() }),
+    lastKnown = LastKnownSsid(
+      store = SharedPreferencesLastKnownSsidStore(preferences),
+      clock = { System.currentTimeMillis() },
+    ),
   )
   val alarms = AlarmScheduler(appContext)
   private val diagnosticLogger = DiagnosticLogger(diagnostics) { System.currentTimeMillis() }
   val logger: DiagnosticLog = DiagnosticLog { kind, detail ->
     diagnosticLogger.record(kind, detail)
-    if (diagnostics.read().enabled) {
+    if (diagnostics.read().policyEnabled || diagnostics.read().vpnEnabled) {
       Log.d(TAG, "$kind $detail")
     }
   }
@@ -50,7 +59,7 @@ class AppContainer(
     store = store,
     clock = { System.currentTimeMillis() },
     network = { ssidReader.snapshot() },
-    tunnel = TunnelController(appContext),
+    tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger),
     log = logger,
   )
   val debouncer = ReceiverDebouncer(
@@ -87,6 +96,8 @@ class AppContainer(
     diagnostics = diagnostics,
     log = logger,
     watching = watching,
+    catalog = catalog,
+    splitTunnels = splitTunnels,
   )
   val pauseRescheduler = PauseRescheduler(
     store = store,

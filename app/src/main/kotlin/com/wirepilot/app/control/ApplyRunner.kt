@@ -43,4 +43,12 @@ class ApplyRunner(
     }
     return UnreadableRetryPolicy.shouldRetry(trigger, decision)
   }
+
+  fun force(command: TunnelCommand, trigger: String, tunnelName: String = store.read().tunnelName) {
+    if (tunnelName.isBlank()) {
+      return
+    }
+    log.record(LogKind.TUNNEL, "trigger=$trigger command=${command.name.lowercase()} tunnel=$tunnelName")
+    tunnel.send(tunnelName, command)
+  }
 }

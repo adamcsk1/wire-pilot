@@ -1,36 +1,26 @@
 package com.wirepilot.app.control
 
 data class SetupFlags(
-  val wireGuardInstalled: Boolean,
-  val controlPermissionGranted: Boolean,
   val nearbyWifiGranted: Boolean,
   val fineLocationGranted: Boolean,
   val locationEnabled: Boolean,
   val notificationsGranted: Boolean,
-  val tunnelNameSet: Boolean,
+  val tunnelImported: Boolean,
+  val vpnPrepared: Boolean,
 )
 
 enum class SetupStep {
-  INSTALL_WIREGUARD,
-  GRANT_CONTROL,
-  ENABLE_REMOTE_CONTROL,
   GRANT_NEARBY_WIFI,
   GRANT_FINE_LOCATION,
   ENABLE_LOCATION,
   GRANT_NOTIFICATIONS,
-  SET_TUNNEL_NAME,
+  IMPORT_TUNNEL,
+  PREPARE_VPN,
 }
 
 object SetupEvaluator {
   fun steps(flags: SetupFlags): List<SetupStep> {
     val steps = mutableListOf<SetupStep>()
-    if (!flags.wireGuardInstalled) {
-      steps += SetupStep.INSTALL_WIREGUARD
-    }
-    if (!flags.controlPermissionGranted) {
-      steps += SetupStep.GRANT_CONTROL
-    }
-    steps += SetupStep.ENABLE_REMOTE_CONTROL
     if (!flags.nearbyWifiGranted) {
       steps += SetupStep.GRANT_NEARBY_WIFI
     }
@@ -43,8 +33,11 @@ object SetupEvaluator {
     if (!flags.notificationsGranted) {
       steps += SetupStep.GRANT_NOTIFICATIONS
     }
-    if (!flags.tunnelNameSet) {
-      steps += SetupStep.SET_TUNNEL_NAME
+    if (!flags.tunnelImported) {
+      steps += SetupStep.IMPORT_TUNNEL
+    }
+    if (!flags.vpnPrepared) {
+      steps += SetupStep.PREPARE_VPN
     }
     return steps
   }

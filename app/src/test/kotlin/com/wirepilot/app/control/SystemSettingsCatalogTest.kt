@@ -6,13 +6,14 @@ import kotlin.test.assertNull
 
 class SystemSettingsCatalogTest {
   @Test
-  fun orderIsAppInfoBatteryUnusedLocation() {
+  fun orderIsAppInfoBatteryUnusedLocationVpn() {
     assertEquals(
       listOf(
         SystemSettingsTarget.APP_INFO,
         SystemSettingsTarget.BATTERY_OPTIMIZATION,
         SystemSettingsTarget.UNUSED_APPS,
         SystemSettingsTarget.LOCATION,
+        SystemSettingsTarget.VPN,
       ),
       SystemSettingsCatalog.targets(),
     )
@@ -23,6 +24,7 @@ class SystemSettingsCatalogTest {
     assertEquals(SystemSettingsTarget.APP_INFO, SystemSettingsCatalog.fallback(SystemSettingsTarget.BATTERY_OPTIMIZATION))
     assertEquals(SystemSettingsTarget.APP_INFO, SystemSettingsCatalog.fallback(SystemSettingsTarget.UNUSED_APPS))
     assertEquals(SystemSettingsTarget.APP_INFO, SystemSettingsCatalog.fallback(SystemSettingsTarget.LOCATION))
+    assertEquals(SystemSettingsTarget.APP_INFO, SystemSettingsCatalog.fallback(SystemSettingsTarget.VPN))
   }
 
   @Test

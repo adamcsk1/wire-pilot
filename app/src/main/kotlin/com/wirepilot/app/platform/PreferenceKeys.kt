@@ -9,4 +9,6 @@ object PreferenceKeys {
   const val DIAGNOSTICS = "diagnostics"
   const val CONNECT_ON_MOBILE = "connect_on_mobile"
   const val DEBOUNCE_SCHEDULED_AT = "debounce_scheduled_at"
+  const val LAST_KNOWN_SSID = "last_known_ssid"
+  const val SPLIT_TUNNEL_PREFIX = "split_tunnel_"
 }

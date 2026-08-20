@@ -39,6 +39,7 @@ android {
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+    isCoreLibraryDesugaringEnabled = true
   }
 
   signingConfigs {
@@ -119,7 +120,7 @@ tasks.register<JacocoReport>("jacocoTestReport") {
 
 tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
   group = "verification"
-  description = "Fail if control/data instruction coverage is below 90%"
+  description = "Fail if control/data instruction coverage is below 95%"
   dependsOn("jacocoTestReport")
 
   val kotlinClasses = coverageClassTree()
@@ -145,7 +146,7 @@ tasks.register<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
       limit {
         counter = "INSTRUCTION"
         value = "COVEREDRATIO"
-        minimum = "0.90".toBigDecimal()
+        minimum = "0.95".toBigDecimal()
       }
     }
   }
@@ -167,8 +168,10 @@ fun coverageClassTree(): ConfigurableFileTree {
 }
 
 dependencies {
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
   implementation("androidx.core:core-ktx:1.19.0")
   implementation("androidx.appcompat:appcompat:1.7.1")
   implementation("com.google.android.material:material:1.14.0")
+  implementation("com.wireguard.android:tunnel:1.0.20260102")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
 }

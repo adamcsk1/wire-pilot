@@ -43,7 +43,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.DOWN),
     )
     assertEquals(
-      "trigger=debounce apply=down via=explicit-receiver net=WIFI ssid=Cafe,Home tunnel=office retry=1/1 ssidSource=none",
+      "trigger=debounce apply=down via=go-backend net=WIFI ssid=Cafe,Home tunnel=office retry=1/1 ssidSource=none",
       detail,
     )
   }
@@ -71,7 +71,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.UP),
     )
     assertEquals(
-      "trigger=apply-now apply=up via=explicit-receiver net=MOBILE ssid=- tunnel=office retry=1/1 ssidSource=none",
+      "trigger=apply-now apply=up via=go-backend net=MOBILE ssid=- tunnel=office retry=1/1 ssidSource=none",
       detail,
     )
   }
@@ -88,7 +88,7 @@ class LogFormatterTest {
   fun applyIncludesProbeButNetworkChangeDoesNot() {
     val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), probe = "nearby=T fine=T locOn=T")
     assertEquals(
-      "trigger=apply apply=up via=explicit-receiver net=WIFI ssid=Home tunnel=office retry=1/1 ssidSource=none nearby=T fine=T locOn=T",
+      "trigger=apply apply=up via=go-backend net=WIFI ssid=Home tunnel=office retry=1/1 ssidSource=none nearby=T fine=T locOn=T",
       LogFormatter.applyDetail(
         trigger = "apply",
         control = StoredControl(tunnelName = "office"),

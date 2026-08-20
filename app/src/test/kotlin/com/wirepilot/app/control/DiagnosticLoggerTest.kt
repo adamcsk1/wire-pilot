@@ -11,12 +11,12 @@ class DiagnosticLoggerTest {
   fun recordsWhenEnabled() {
     val store = InMemoryDiagnosticStore()
     DiagnosticLogger(store) { 42L }.record(LogKind.BOOT, "start")
-    assertEquals(listOf(LogEvent(42L, LogKind.BOOT, "start")), store.read().entries)
+    assertEquals(listOf(LogEvent(42L, LogKind.BOOT, "start")), store.read().policyEntries)
   }
 
   @Test
   fun doesNotWriteWhenDisabled() {
-    val store = InMemoryDiagnosticStore(DiagnosticState(enabled = false))
+    val store = InMemoryDiagnosticStore(DiagnosticState(policyEnabled = false))
     var writes = 0
     val counting = object : com.wirepilot.app.data.DiagnosticStore {
       override fun read() = store.read()
@@ -27,6 +27,6 @@ class DiagnosticLoggerTest {
     }
     DiagnosticLogger(counting) { 1L }.record(LogKind.APPLY, "x")
     assertEquals(0, writes)
-    assertTrue(store.read().entries.isEmpty())
+    assertTrue(store.read().policyEntries.isEmpty())
   }
 }

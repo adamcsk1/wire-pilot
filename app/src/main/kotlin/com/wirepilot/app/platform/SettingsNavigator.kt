@@ -45,6 +45,7 @@ class SettingsNavigator(
         IntentCompat.createManageUnusedAppRestrictionsIntent(context, packageName)
       }.getOrNull()
       SystemSettingsTarget.LOCATION -> Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+      SystemSettingsTarget.VPN -> Intent(Settings.ACTION_VPN_SETTINGS)
     }
   }
 }

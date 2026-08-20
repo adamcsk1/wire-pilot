@@ -77,7 +77,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/wireguard_background_hint"
+            android:text="@string/vpn_background_hint"
             android:textColor="@color/on_surface_muted"
             android:textSize="12sp" />
         </LinearLayout>
@@ -91,22 +91,42 @@
         android:textColor="@color/on_surface"
         android:textStyle="bold" />
 
-      <com.google.android.material.textfield.TextInputLayout
+      <TextView
+        android:id="@+id/activeTunnelLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="@string/tunnel_name_hint"
-        app:boxBackgroundMode="outline"
-        app:boxStrokeColor="@color/copper">
+        android:textColor="@color/on_surface"
+        android:textSize="16sp" />
 
-        <com.google.android.material.textfield.TextInputEditText
-          android:id="@+id/tunnelNameInput"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:imeOptions="actionDone"
-          android:inputType="textNoSuggestions"
-          android:singleLine="true" />
-      </com.google.android.material.textfield.TextInputLayout>
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/selectTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/select_tunnel" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/importTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_tunnel" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/exportTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/export_tunnels" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/splitTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/split_tunnel" />
 
       <TextView
         android:layout_width="wrap_content"
@@ -193,6 +213,40 @@
           android:layout_marginStart="6dp"
           android:layout_weight="1"
           android:text="@string/control_off" />
+      </LinearLayout>
+
+      <TextView
+        android:id="@+id/manualVpnHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/manual_vpn_hint"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="13sp" />
+
+      <LinearLayout
+        android:id="@+id/manualVpnRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+          android:id="@+id/connectVpnButton"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_marginEnd="6dp"
+          android:layout_weight="1"
+          android:text="@string/connect_vpn" />
+
+        <com.google.android.material.button.MaterialButton
+          android:id="@+id/disconnectVpnButton"
+          style="@style/Widget.WirePilot.Button.Outlined"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="6dp"
+          android:layout_weight="1"
+          android:text="@string/disconnect_vpn" />
       </LinearLayout>
     </LinearLayout>
   </ScrollView>

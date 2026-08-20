@@ -1,5 +1,6 @@
 package com.wirepilot.app
 
+import android.net.VpnService
 import android.os.Bundle
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -18,14 +19,12 @@ import com.wirepilot.app.platform.SettingsNavigator
 import com.wirepilot.app.ui.AppPermissions
 import com.wirepilot.app.ui.SetupLabels
 import com.wirepilot.app.ui.SystemBarInsets
-import com.wirepilot.app.ui.WireGuardLauncher
 
 class SettingsActivity : AppCompatActivity() {
   private lateinit var controller: HomeController
   private lateinit var settingsNavigator: SettingsNavigator
   private lateinit var setupCard: MaterialCardView
   private lateinit var setupList: LinearLayout
-  private lateinit var openWireGuardButton: MaterialButton
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -35,11 +34,9 @@ class SettingsActivity : AppCompatActivity() {
     settingsNavigator = SettingsNavigator(this)
     setupCard = findViewById(R.id.setupCard)
     setupList = findViewById(R.id.setupList)
-    openWireGuardButton = findViewById(R.id.openWireGuardButton)
     findViewById<MaterialToolbar>(R.id.settingsToolbar).setNavigationOnClickListener {
       onBackPressedDispatcher.onBackPressed()
     }
-    openWireGuardButton.setOnClickListener { WireGuardLauncher.openOrStore(this) }
     findViewById<MaterialButton>(R.id.appInfoButton).setOnClickListener {
       openSystemSettings(SystemSettingsTarget.APP_INFO)
     }
@@ -52,6 +49,9 @@ class SettingsActivity : AppCompatActivity() {
     findViewById<MaterialButton>(R.id.locationSettingsButton).setOnClickListener {
       openSystemSettings(SystemSettingsTarget.LOCATION)
     }
+    findViewById<MaterialButton>(R.id.vpnSettingsButton).setOnClickListener {
+      openSystemSettings(SystemSettingsTarget.VPN)
+    }
     refreshUi()
   }
 
@@ -62,13 +62,12 @@ class SettingsActivity : AppCompatActivity() {
 
   private fun refreshUi() {
     val flags = SetupFlags(
-      wireGuardInstalled = AppPermissions.wireGuardInstalled(this),
-      controlPermissionGranted = AppPermissions.controlGranted(this),
       nearbyWifiGranted = AppPermissions.nearbyWifiGranted(this),
       fineLocationGranted = AppPermissions.fineLocationGranted(this),
       locationEnabled = AppPermissions.locationEnabled(this),
       notificationsGranted = AppPermissions.notificationsGranted(this),
-      tunnelNameSet = controller.viewState().tunnelName.isNotBlank(),
+      tunnelImported = controller.viewState().importedTunnels.isNotEmpty(),
+      vpnPrepared = VpnService.prepare(this) == null,
     )
     val steps = SetupEvaluator.steps(flags)
     setupList.removeAllViews()

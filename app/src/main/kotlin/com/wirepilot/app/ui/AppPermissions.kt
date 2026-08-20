@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
-import com.wirepilot.app.control.WireGuardContract
 
 object AppPermissions {
   fun granted(context: Context, permission: String): Boolean {
@@ -14,18 +13,6 @@ object AppPermissions {
 
   fun locationEnabled(context: Context): Boolean {
     return context.getSystemService(LocationManager::class.java).isLocationEnabled
-  }
-
-  fun wireGuardInstalled(context: Context): Boolean {
-    return try {
-      context.packageManager.getPackageInfo(
-        WireGuardContract.PACKAGE_NAME,
-        PackageManager.PackageInfoFlags.of(0),
-      )
-      true
-    } catch (_: PackageManager.NameNotFoundException) {
-      false
-    }
   }
 
   fun nearbyWifiGranted(context: Context): Boolean {
@@ -38,9 +25,5 @@ object AppPermissions {
 
   fun notificationsGranted(context: Context): Boolean {
     return granted(context, Manifest.permission.POST_NOTIFICATIONS)
-  }
-
-  fun controlGranted(context: Context): Boolean {
-    return granted(context, WireGuardContract.PERMISSION)
   }
 }

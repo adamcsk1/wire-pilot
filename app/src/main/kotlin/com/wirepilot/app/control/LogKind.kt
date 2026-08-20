@@ -11,4 +11,6 @@ enum class LogKind {
   DISABLE,
   PAUSE_RESCHEDULE,
   WATCHING,
+  TUNNEL,
+  TUNNEL_ERROR,
 }

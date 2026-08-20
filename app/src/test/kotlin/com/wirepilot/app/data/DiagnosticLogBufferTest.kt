@@ -5,36 +5,58 @@ import com.wirepilot.app.control.LogKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class DiagnosticLogBufferTest {
   @Test
-  fun appendIgnoredWhenDisabled() {
-    val state = DiagnosticState(enabled = false)
+  fun appendIgnoredWhenPolicyDisabled() {
+    val state = DiagnosticState(policyEnabled = false)
     val next = DiagnosticLogBuffer.append(state, LogEvent(1L, LogKind.APPLY, "x"))
     assertEquals(state, next)
   }
 
   @Test
-  fun appendKeepsLastMaxEntries() {
+  fun appendIgnoredWhenVpnDisabled() {
+    val state = DiagnosticState(vpnEnabled = false)
+    val next = DiagnosticLogBuffer.append(state, LogEvent(1L, LogKind.TUNNEL, "up"))
+    assertEquals(state, next)
+  }
+
+  @Test
+  fun appendKeepsLastMaxPolicyEntries() {
     var state = DiagnosticState()
     repeat(DiagnosticLogBuffer.MAX_ENTRIES + 5) { index ->
       state = DiagnosticLogBuffer.append(state, LogEvent(index.toLong(), LogKind.APPLY, index.toString()))
     }
-    assertEquals(DiagnosticLogBuffer.MAX_ENTRIES, state.entries.size)
-    assertEquals("5", state.entries.first().detail)
+    assertEquals(DiagnosticLogBuffer.MAX_ENTRIES, state.policyEntries.size)
+    assertEquals("5", state.policyEntries.first().detail)
   }
 
   @Test
-  fun clearKeepsEnabledFlag() {
+  fun appendRoutesTunnelToVpn() {
+    val next = DiagnosticLogBuffer.append(DiagnosticState(), LogEvent(1L, LogKind.TUNNEL_ERROR, "x"))
+    assertEquals(1, next.vpnEntries.size)
+    assertTrue(next.policyEntries.isEmpty())
+  }
+
+  @Test
+  fun clearKeepsEnabledFlags() {
     val cleared = DiagnosticLogBuffer.clear(
-      DiagnosticState(enabled = false, entries = listOf(LogEvent(1L, LogKind.BOOT, "x"))),
+      DiagnosticState(policyEnabled = false, vpnEnabled = true, policyEntries = listOf(LogEvent(1L, LogKind.BOOT, "x"))),
     )
-    assertFalse(cleared.enabled)
-    assertEquals(emptyList(), cleared.entries)
+    assertFalse(cleared.policyEnabled)
+    assertTrue(cleared.vpnEnabled)
+    assertEquals(emptyList(), cleared.policyEntries)
   }
 
   @Test
-  fun setEnabled() {
-    assertFalse(DiagnosticLogBuffer.setEnabled(DiagnosticState(), false).enabled)
+  fun setEnabledFlags() {
+    assertFalse(DiagnosticLogBuffer.setPolicyEnabled(DiagnosticState(), false).policyEnabled)
+    assertFalse(DiagnosticLogBuffer.setVpnEnabled(DiagnosticState(), false).vpnEnabled)
+    val both = DiagnosticLogBuffer.setEnabled(DiagnosticState(), false)
+    assertFalse(both.policyEnabled)
+    assertFalse(both.vpnEnabled)
+    assertTrue(DiagnosticLogBuffer.clearPolicy(DiagnosticState(policyEntries = listOf(LogEvent(1, LogKind.BOOT, "x")))).policyEntries.isEmpty())
+    assertTrue(DiagnosticLogBuffer.clearVpn(DiagnosticState(vpnEntries = listOf(LogEvent(1, LogKind.TUNNEL, "x")))).vpnEntries.isEmpty())
   }
 }
