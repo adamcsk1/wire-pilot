@@ -1,0 +1,6 @@
+-keep class com.wireguard.** { *; }
+-keep class com.google.crypto.tink.** { *; }
+-keep class androidx.security.crypto.** { *; }
+-dontwarn com.google.crypto.tink.**
+-dontwarn javax.annotation.Nonnull
+-dontwarn javax.annotation.meta.TypeQualifierDefault

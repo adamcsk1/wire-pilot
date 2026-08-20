@@ -58,9 +58,12 @@ android {
       enableUnitTestCoverage = true
     }
     getByName("release") {
-      isMinifyEnabled = false
-      //noinspection NotShrinkingResources
-      isShrinkResources = false
+      isMinifyEnabled = true
+      isShrinkResources = true
+      proguardFiles(
+        getDefaultProguardFile("proguard-android-optimize.txt"),
+        "proguard-rules.pro",
+      )
       if (hasReleaseSigning) {
         signingConfig = signingConfigs.getByName("release")
       }
@@ -173,5 +176,6 @@ dependencies {
   implementation("androidx.appcompat:appcompat:1.7.1")
   implementation("com.google.android.material:material:1.14.0")
   implementation("com.wireguard.android:tunnel:1.0.20260102")
+  implementation("androidx.security:security-crypto:1.1.0-alpha06")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
 }
