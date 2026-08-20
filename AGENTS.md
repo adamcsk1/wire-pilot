@@ -1,4 +1,4 @@
-# Wire Pilot
+# WirePilot
 
 OpenCode should use `.opencode/project-instructions.md` and `.opencode/review-instructions.md` as the source of truth for project rules and review rules.
 

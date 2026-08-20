@@ -1,5 +1,5 @@
 ---
-description: Review the current Wire Pilot working tree against project review rules.
+description: Review the current WirePilot working tree against project review rules.
 agent: code-reviewer
 ---
 

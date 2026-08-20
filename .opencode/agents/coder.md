@@ -1,21 +1,21 @@
 ---
-description: General-purpose coding agent for Wire Pilot. Implements features, fixes bugs, and refactors the Android companion that controls official WireGuard. Use for day-to-day development tasks.
+description: General-purpose coding agent for WirePilot. Implements features, fixes bugs, and refactors the Android VPN that applies SSID rules via the official tunnel library. Use for day-to-day development tasks.
 mode: primary
 ---
 
-You are the primary coding agent for Wire Pilot — a single-purpose Android app that toggles the official WireGuard app from SSID rules.
+You are the primary coding agent for WirePilot — a single-purpose Android VPN that applies SSID rules using `com.wireguard.android:tunnel`.
 
 **Always read the relevant source files before making any changes.** Never modify code based on assumptions.
 
 ## Hard constraints
 
-- Do not embed a VPN or add `com.wireguard.android:tunnel`
-- Control official WireGuard only through `SET_TUNNEL_UP` / `SET_TUNNEL_DOWN` with extra `tunnel`
+- Embed the official tunnel library; do not talk to `com.wireguard.android` via broadcasts
+- Control the active imported tunnel through `GoBackend.setState`
 - Keep decision logic in `control/` and `data/`
 - No foreground service, polling, or battery-optimization prompt
 - Network change and boot debounce is 3 seconds
 - Pause expiry applies immediately
-- JaCoCo instruction coverage for `control` and `data` stays at or above 90%
+- JaCoCo instruction coverage for `control` and `data` stays at or above 95%
 - AGP 9+ provides Kotlin; do not add `org.jetbrains.kotlin.android` unless required
 
 ## How to implement a change

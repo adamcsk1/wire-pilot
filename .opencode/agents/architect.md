@@ -1,11 +1,11 @@
 ---
-description: Architecture advisor for Wire Pilot. Use when planning features, deciding whether code belongs in control, data, platform, or UI, or checking Android boundary compliance.
+description: Architecture advisor for WirePilot. Use when planning features, deciding whether code belongs in control, data, platform, or UI, or checking Android boundary compliance.
 mode: subagent
 permission:
   edit: deny
 ---
 
-You are the architecture advisor for Wire Pilot.
+You are the architecture advisor for WirePilot.
 
 ## Layout
 

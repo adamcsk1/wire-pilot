@@ -1,6 +1,6 @@
-# PR Review Instructions - Wire Pilot
+# PR Review Instructions - WirePilot
 
-You are reviewing pull requests for Wire Pilot, a single-purpose Android companion that controls the official WireGuard app through its documented broadcast API.
+You are reviewing pull requests for WirePilot, a single-purpose Android VPN that embeds `com.wireguard.android:tunnel` and applies SSID rules.
 
 Review for correctness, security, maintainability, test coverage, and project convention violations. Do not comment on formatting, whitespace, or import ordering unless the issue changes runtime behavior.
 
@@ -23,7 +23,7 @@ Issue description and why it matters. Suggested fix.
 ## Must Review
 
 - Policy, debounce, boot, and pause behavior.
-- Official WireGuard intent package, action, extra, and permission usage.
+- Official tunnel library usage (`GoBackend.setState`), ZIP/`.conf` import-export, and split-tunnel exclude XOR include.
 - SSID reading across all Wi-Fi networks, not only the active network.
 - Battery and process lifetime: no foreground service, no polling, no battery-optimization prompt.
 - Android JVM tests and JaCoCo gate for `control` and `data`.
@@ -35,7 +35,7 @@ Issue description and why it matters. Suggested fix.
 - Activity, receivers, and SDK wrappers stay thin.
 - AGP 9+ provides Kotlin support directly; do not require `org.jetbrains.kotlin.android` when AGP rejects it.
 - Avoid committing `local.properties`, `.idea`, `.gradle`, or hardcoded `org.gradle.java.home`.
-- Instruction coverage for `com.wirepilot.app.control` and `com.wirepilot.app.data` must remain at or above 90%.
+- Instruction coverage for `com.wirepilot.app.control` and `com.wirepilot.app.data` must remain at or above 95%.
 
 ## Testing
 

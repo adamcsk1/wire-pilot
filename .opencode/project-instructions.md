@@ -1,39 +1,38 @@
-# Wire Pilot Project Instructions
+# WirePilot Project Instructions
 
-Wire Pilot is a single-purpose Android companion that toggles the official WireGuard app. It does not embed a VPN and must not depend on `com.wireguard.android:tunnel`.
+WirePilot is a single-purpose Android VPN that embeds official `com.wireguard.android:tunnel` and applies SSID rules. It does not control the official WireGuard app.
 
-Official control surface:
+Tunnel surface:
 
-- Package `com.wireguard.android`
-- Permission `com.wireguard.android.permission.CONTROL_TUNNELS`
-- Actions `com.wireguard.android.action.SET_TUNNEL_UP` and `SET_TUNNEL_DOWN`
-- Extra `tunnel` is the exact tunnel name
-- Remote control is off until the user enables WireGuard Settings → Allow remote control apps
-- There is no official API to list tunnels or read tunnel state
+- `GoBackend` + `GoBackend.VpnService`
+- Import/export official ZIP of `*.conf` (name = filename minus `.conf`) and single `.conf`
+- Many tunnels, one active
+- Split tunnel: `AllowedIPs` from the conf plus per-app exclude XOR include
+- Always-on via `VpnService.prepare()` and `GoBackend.setAlwaysOnCallback`
 
 Policy:
 
-- Control off or pause active: do nothing
-- Blank tunnel name: do nothing
-- On Wi-Fi with unreadable SSID: do nothing
-- On Wi-Fi and SSID is excluded: `SET_TUNNEL_DOWN`
-- Every other case, including cellular: `SET_TUNNEL_UP`
+- Control off or pause active: `DOWN` if a tunnel is selected
+- Blank / no imported tunnel: do nothing
+- On Wi-Fi with unreadable SSID: do nothing (unless last-known SSID applies)
+- On Wi-Fi and SSID is excluded: `DOWN`
+- Every other case, including cellular: `UP`
 - Read SSID from every `TRANSPORT_WIFI` network, never only `activeNetwork`
 - Network change and boot wait 3 seconds, then apply once
 - Timed pause expiry applies immediately
-- No foreground service, no polling, no battery-optimization prompt
+- No polling, no battery-optimization prompt
 
 ## Layout
 
 ```text
 app/src/main/kotlin/com/wirepilot/app/control/   Pure policy, coordinators, home controller
-app/src/main/kotlin/com/wirepilot/app/data/      Store interface and SSID codec
-app/src/main/kotlin/com/wirepilot/app/platform/  Android adapters
+app/src/main/kotlin/com/wirepilot/app/data/      Store interface and codecs
+app/src/main/kotlin/com/wirepilot/app/platform/  Android adapters, VPN, ZIP IO
 app/src/main/kotlin/com/wirepilot/app/receiver/  Boot, network, pause receivers
 app/src/test/kotlin/                            JVM unit tests
 ```
 
-Keep decision logic in `control/` and `data/`. Keep Activity, receivers, ConnectivityManager, AlarmManager, and SharedPreferences thin.
+Keep decision logic in `control/` and `data/`. Keep Activity, receivers, ConnectivityManager, AlarmManager, and SharedPreferences thin. Never log private keys.
 
 ## Commands
 
@@ -43,7 +42,7 @@ Keep decision logic in `control/` and `data/`. Keep Activity, receivers, Connect
 ./gradlew.bat assembleDebug
 ```
 
-JaCoCo instruction coverage for `com.wirepilot.app.control` and `com.wirepilot.app.data` must stay at or above 90%.
+JaCoCo instruction coverage for `com.wirepilot.app.control` and `com.wirepilot.app.data` must stay at or above 95%.
 
 Android Gradle commands require Java 17 or newer. The project uses AGP 9+, which provides Kotlin support directly; do not add `org.jetbrains.kotlin.android` unless the Android Gradle plugin version requires it.
 
