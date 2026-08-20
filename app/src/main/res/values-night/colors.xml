@@ -1,0 +1,13 @@
+<resources>
+  <color name="ink">#0E1A24</color>
+  <color name="copper">#E08940</color>
+  <color name="seafoam">#3CB3A4</color>
+  <color name="paper">#0F1C22</color>
+  <color name="surface">#0F1C22</color>
+  <color name="surface_card">#17303A</color>
+  <color name="on_surface">#F4EFE6</color>
+  <color name="on_surface_muted">#A8B3B8</color>
+  <color name="primary">#E08940</color>
+  <color name="secondary">#3CB3A4</color>
+  <color name="outline">#2C4650</color>
+</resources>
