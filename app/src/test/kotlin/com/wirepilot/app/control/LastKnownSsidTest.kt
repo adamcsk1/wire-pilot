@@ -1,14 +1,25 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.LastKnownSsidStore
+import com.wirepilot.app.data.StoredLastKnownSsid
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class LastKnownSsidTest {
+  private class MemoryStore : LastKnownSsidStore {
+    var value: StoredLastKnownSsid? = null
+
+    override fun read(): StoredLastKnownSsid? = value
+
+    override fun write(value: StoredLastKnownSsid) {
+      this.value = value
+    }
+  }
+
   @Test
   fun settlingUsesRememberedSsid() {
-    var now = 1_000L
-    val cache = LastKnownSsid(clock = { now })
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { 1_000L })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
     val settling = NetworkSnapshot(NetworkKind.WIFI_SETTLING, hasCellular = true)
     val restored = cache.takeIfSettling(settling)
@@ -19,19 +30,27 @@ class LastKnownSsidTest {
   }
 
   @Test
-  fun expiredCacheLeavesSettling() {
+  fun doesNotExpireWithTime() {
     var now = 1_000L
-    val cache = LastKnownSsid(clock = { now })
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { now })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
-    now += LastKnownSsid.TTL_MS + 1
-    val settling = NetworkSnapshot(NetworkKind.WIFI_SETTLING)
-    assertEquals(settling, cache.takeIfSettling(settling))
-    assertNull(cache.current())
+    now += 30L * 24 * 60 * 60 * 1000
+    assertEquals("Home", cache.current())
+  }
+
+  @Test
+  fun survivesNewInstanceOnSameStore() {
+    val store = MemoryStore()
+    LastKnownSsid(store = store, clock = { 1L }).remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
+    val restored = LastKnownSsid(store = store).takeIfSettling(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
+    assertEquals(setOf("Home"), restored.wifiSsids)
+    assertEquals("lastKnown", restored.ssidSource)
   }
 
   @Test
   fun readableWifiIsUnchanged() {
-    val cache = LastKnownSsid(clock = { 1L })
+    val cache = LastKnownSsid(store = MemoryStore(), clock = { 1L })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
     val live = NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe"), ssidSource = "connectionInfo")
     assertEquals(live, cache.takeIfSettling(live))
@@ -39,7 +58,7 @@ class LastKnownSsidTest {
 
   @Test
   fun mobileIsUnchanged() {
-    val cache = LastKnownSsid(clock = { 1L })
+    val cache = LastKnownSsid(store = MemoryStore(), clock = { 1L })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
     val mobile = NetworkSnapshot(NetworkKind.MOBILE, hasCellular = true)
     assertEquals(mobile, cache.takeIfSettling(mobile))
@@ -47,18 +66,18 @@ class LastKnownSsidTest {
 
   @Test
   fun newerReadableSsidReplacesCache() {
-    var now = 1_000L
-    val cache = LastKnownSsid(clock = { now })
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { 10L })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
-    now += 10
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe")))
     val restored = cache.takeIfSettling(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
     assertEquals(setOf("Cafe"), restored.wifiSsids)
+    assertEquals("Cafe", store.value?.ssid)
   }
 
   @Test
   fun emptyWifiSsidsDoNotClearCache() {
-    val cache = LastKnownSsid(clock = { 1L })
+    val cache = LastKnownSsid(store = MemoryStore(), clock = { 1L })
     cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
     cache.remember(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
     assertEquals("Home", cache.current())

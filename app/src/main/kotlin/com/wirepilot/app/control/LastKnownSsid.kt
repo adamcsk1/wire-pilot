@@ -1,16 +1,16 @@
 package com.wirepilot.app.control
 
-class LastKnownSsid(
-  private val clock: () -> Long,
-  private val ttlMillis: Long = TTL_MS,
-) {
-  private var ssid: String? = null
-  private var rememberedAtMillis: Long = 0
+import com.wirepilot.app.data.LastKnownSsidStore
+import com.wirepilot.app.data.StoredLastKnownSsid
 
+/** Last readable SSID is kept until a different readable SSID is stored. No TTL. */
+class LastKnownSsid(
+  private val store: LastKnownSsidStore,
+  private val clock: () -> Long = { 0L },
+) {
   fun remember(snapshot: NetworkSnapshot) {
     val name = snapshot.wifiSsids.minOrNull() ?: return
-    ssid = name
-    rememberedAtMillis = clock()
+    store.write(StoredLastKnownSsid(ssid = name, atMillis = clock()))
   }
 
   fun takeIfSettling(snapshot: NetworkSnapshot): NetworkSnapshot {
@@ -26,14 +26,6 @@ class LastKnownSsid(
   }
 
   fun current(): String? {
-    val name = ssid ?: return null
-    if (clock() - rememberedAtMillis > ttlMillis) {
-      return null
-    }
-    return name
-  }
-
-  companion object {
-    const val TTL_MS = 5 * 60_000L
+    return store.read()?.ssid
   }
 }
