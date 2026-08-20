@@ -1,14 +1,25 @@
 package com.wirepilot.app.platform
 
 import android.content.Context
+import androidx.security.crypto.EncryptedFile
+import androidx.security.crypto.MasterKey
 import com.wirepilot.app.control.ConfigZipNames
 import com.wirepilot.app.data.TunnelCatalog
 import java.io.File
+import java.io.IOException
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 class FileTunnelCatalog(
   context: Context,
 ) : TunnelCatalog {
-  private val directory = File(context.filesDir, "tunnels").apply { mkdirs() }
+  private val appContext = context.applicationContext
+  private val directory = File(appContext.filesDir, "tunnels").apply { mkdirs() }
+  private val stagingDirectory = File(directory, ".staging").apply { mkdirs() }
+  private val masterKey = MasterKey.Builder(appContext)
+    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+    .build()
 
   override fun names(): List<String> {
     return directory.listFiles()
@@ -19,16 +30,29 @@ class FileTunnelCatalog(
 
   override fun readConf(name: String): String? {
     val file = fileFor(name) ?: return null
-    return if (file.isFile) file.readText() else null
+    if (file.isFile) {
+      readEncrypted(file)?.let { return it }
+      recoverLegacyTempAad(file)?.let { return it }
+      val plaintext = runCatching { file.readText() }.getOrNull() ?: return null
+      if (ConfigZipIO.parseOrNull(plaintext) == null) {
+        return null
+      }
+      runCatching { writeEncrypted(file, plaintext) }
+      return plaintext
+    }
+    return recoverLegacyTempAad(file)
   }
 
   override fun writeConf(name: String, conf: String) {
     val file = fileFor(name) ?: return
-    file.writeText(conf)
+    writeEncrypted(file, conf)
   }
 
   override fun delete(name: String) {
-    fileFor(name)?.delete()
+    val file = fileFor(name) ?: return
+    file.delete()
+    File(directory, "${file.name}.tmp").delete()
+    File(stagingDirectory, file.name).delete()
   }
 
   private fun fileFor(name: String): File? {
@@ -36,5 +60,74 @@ class FileTunnelCatalog(
       return null
     }
     return File(directory, ConfigZipNames.fileName(name))
+  }
+
+  private fun encrypted(file: File): EncryptedFile {
+    return EncryptedFile.Builder(
+      appContext,
+      file,
+      masterKey,
+      EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
+    ).build()
+  }
+
+  private fun readEncrypted(file: File): String? {
+    return runCatching {
+      encrypted(file).openFileInput().use { input ->
+        input.readBytes().toString(StandardCharsets.UTF_8)
+      }
+    }.getOrNull()
+  }
+
+  private fun recoverLegacyTempAad(file: File): String? {
+    val temp = File(directory, "${file.name}.tmp")
+    if (temp.isFile) {
+      readEncrypted(temp)?.let { plaintext ->
+        val published = runCatching {
+          writeEncrypted(file, plaintext)
+          true
+        }.getOrDefault(false)
+        if (published) {
+          temp.delete()
+        }
+        return plaintext
+      }
+    }
+    if (!file.isFile) {
+      return null
+    }
+    runCatching { file.copyTo(temp, overwrite = true) }.getOrNull() ?: return null
+    val plaintext = readEncrypted(temp)
+    temp.delete()
+    if (plaintext == null) {
+      return null
+    }
+    runCatching { writeEncrypted(file, plaintext) }
+    return plaintext
+  }
+
+  private fun writeEncrypted(target: File, conf: String) {
+    val staging = File(stagingDirectory, target.name)
+    if (staging.exists() && !staging.delete()) {
+      throw IOException("could not clear staging ${target.name}")
+    }
+    encrypted(staging).openFileOutput().use { output ->
+      output.write(conf.toByteArray(StandardCharsets.UTF_8))
+    }
+    if (readEncrypted(staging) == null) {
+      staging.delete()
+      throw IOException("staging decrypt failed ${target.name}")
+    }
+    try {
+      Files.move(
+        staging.toPath(),
+        target.toPath(),
+        StandardCopyOption.ATOMIC_MOVE,
+        StandardCopyOption.REPLACE_EXISTING,
+      )
+    } catch (error: Exception) {
+      staging.delete()
+      throw IOException("could not publish ${target.name}", error)
+    }
   }
 }
