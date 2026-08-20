@@ -8,6 +8,12 @@
   <color name="on_surface">#F4EFE6</color>
   <color name="on_surface_muted">#A8B3B8</color>
   <color name="primary">#E08940</color>
+  <color name="on_primary">#0E1A24</color>
+  <color name="primary_container">#5A3A1C</color>
+  <color name="on_primary_container">#F4EFE6</color>
   <color name="secondary">#3CB3A4</color>
+  <color name="on_secondary">#0E1A24</color>
+  <color name="secondary_container">#1A4A45</color>
+  <color name="on_secondary_container">#F4EFE6</color>
   <color name="outline">#2C4650</color>
 </resources>
