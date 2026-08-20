@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
@@ -95,8 +96,15 @@ class LogActivity : AppCompatActivity() {
     if (text.isBlank()) {
       return
     }
-    val clipboard = getSystemService(ClipboardManager::class.java)
-    clipboard.setPrimaryClip(ClipData.newPlainText("WirePilot log", text))
-    Toast.makeText(this, R.string.log_copied, Toast.LENGTH_SHORT).show()
+    AlertDialog.Builder(this)
+      .setTitle(R.string.copy_log)
+      .setMessage(R.string.copy_log_contains_networks)
+      .setPositiveButton(R.string.copy_log) { _, _ ->
+        val clipboard = getSystemService(ClipboardManager::class.java)
+        clipboard.setPrimaryClip(ClipData.newPlainText("WirePilot log", text))
+        Toast.makeText(this, R.string.log_copied, Toast.LENGTH_SHORT).show()
+      }
+      .setNegativeButton(R.string.cancel, null)
+      .show()
   }
 }

@@ -81,7 +81,12 @@
   <string name="open_vpn_settings">Always-on VPN settings</string>
   <string name="connect_vpn">Connect VPN</string>
   <string name="disconnect_vpn">Disconnect VPN</string>
-  <string name="manual_vpn_hint">Policy is off. Connect stays up until you disconnect.</string>
+  <string name="manual_vpn_hint">Policy is off. Connect is temporary; the next policy apply brings the tunnel down.</string>
+  <string name="export_contains_keys">This ZIP contains WireGuard private keys. Keep it private.</string>
+  <string name="import_overwrite_title">Replace existing tunnels?</string>
+  <string name="import_overwrite_message">These names already exist and will be replaced: %1$s</string>
+  <string name="import_overwrite">Replace</string>
+  <string name="copy_log_contains_networks">Copied text can include network names and policy details.</string>
   <string name="policy_logging">Policy log</string>
   <string name="vpn_logging">VPN log</string>
   <string name="settings_unavailable">Could not open that settings screen</string>

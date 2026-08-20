@@ -169,9 +169,9 @@ class MainActivity : AppCompatActivity() {
   private fun bindActions() {
     selectTunnelButton.setOnClickListener { showTunnelPicker() }
     importTunnelButton.setOnClickListener {
-      importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+      importLauncher.launch(arrayOf("application/zip", "text/plain"))
     }
-    exportTunnelButton.setOnClickListener { exportLauncher.launch("wirepilot-tunnels.zip") }
+    exportTunnelButton.setOnClickListener { confirmExport() }
     splitTunnelButton.setOnClickListener { showSplitTunnelDialog() }
     addCurrentButton.setOnClickListener { onAddCurrentOrFixSsid() }
     addSsidButton.setOnClickListener { showAddSsidDialog() }
@@ -477,10 +477,47 @@ class MainActivity : AppCompatActivity() {
       .show()
   }
 
+  private fun confirmExport() {
+    AlertDialog.Builder(this)
+      .setTitle(R.string.export_tunnels)
+      .setMessage(R.string.export_contains_keys)
+      .setPositiveButton(R.string.export_tunnels) { _, _ ->
+        exportLauncher.launch("wirepilot-tunnels.zip")
+      }
+      .setNegativeButton(R.string.cancel, null)
+      .show()
+  }
+
   private fun importFrom(uri: Uri) {
     val container = (application as WirePilotApp).container
     val displayName = displayName(uri)
     val isZip = displayName.endsWith(".zip", ignoreCase = true)
+    val names = runCatching {
+      contentResolver.openInputStream(uri)?.use { input ->
+        ConfigZipIO.peekNames(input, isZip, displayName)
+      }.orEmpty()
+    }.getOrDefault(emptyList())
+    if (names.isEmpty()) {
+      Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
+      return
+    }
+    val overlap = names.filter { it in container.catalog.names() }
+    if (overlap.isEmpty()) {
+      writeImported(uri, displayName, isZip)
+      return
+    }
+    AlertDialog.Builder(this)
+      .setTitle(R.string.import_overwrite_title)
+      .setMessage(getString(R.string.import_overwrite_message, overlap.joinToString(", ")))
+      .setPositiveButton(R.string.import_overwrite) { _, _ ->
+        writeImported(uri, displayName, isZip)
+      }
+      .setNegativeButton(R.string.cancel, null)
+      .show()
+  }
+
+  private fun writeImported(uri: Uri, displayName: String, isZip: Boolean) {
+    val container = (application as WirePilotApp).container
     val imported = runCatching {
       contentResolver.openInputStream(uri)?.use { input ->
         ConfigZipIO.importAll(input, isZip, displayName, container.catalog, container.splitTunnels)
