@@ -3,7 +3,6 @@ package com.wirepilot.app.platform
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.core.content.ContextCompat
 import com.wirepilot.app.control.ApplyRunner
 import com.wirepilot.app.control.BootCoordinator
@@ -51,9 +50,6 @@ class AppContainer(
   private val diagnosticLogger = DiagnosticLogger(diagnostics) { System.currentTimeMillis() }
   val logger: DiagnosticLog = DiagnosticLog { kind, detail ->
     diagnosticLogger.record(kind, detail)
-    if (diagnostics.read().policyEnabled || diagnostics.read().vpnEnabled) {
-      Log.d(TAG, "$kind $detail")
-    }
   }
   val applyRunner = ApplyRunner(
     store = store,
@@ -136,9 +132,5 @@ class AppContainer(
       )
       debouncer.scheduleUnreadableRetry(nextTrigger)
     }
-  }
-
-  companion object {
-    private const val TAG = "WirePilot"
   }
 }

@@ -77,7 +77,7 @@ class NetworkWatcher(
       context,
       requestCode,
       Intent(context, NetworkChangeReceiver::class.java),
-      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
   }
 
