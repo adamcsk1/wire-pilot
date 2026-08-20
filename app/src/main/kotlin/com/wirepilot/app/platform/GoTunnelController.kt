@@ -9,6 +9,7 @@ import com.wirepilot.app.control.TunnelCommand
 import com.wirepilot.app.control.TunnelCommands
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.TunnelCatalog
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
@@ -19,7 +20,7 @@ class GoTunnelController(
   private val log: DiagnosticLog = NoOpDiagnosticLog,
 ) : TunnelCommands {
   private val tunnels = ConcurrentHashMap<String, NamedTunnel>()
-  private val lastUpConf = ConcurrentHashMap<String, String>()
+  private val lastUpConfDigest = ConcurrentHashMap<String, String>()
   private val executor = Executors.newSingleThreadExecutor()
 
   override fun send(tunnelName: String, command: TunnelCommand) {
@@ -44,21 +45,21 @@ class GoTunnelController(
     val tunnel = tunnels.getOrPut(tunnelName) { NamedTunnel(tunnelName) }
     val desired = if (command == TunnelCommand.UP) Tunnel.State.UP else Tunnel.State.DOWN
     val actual = runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN)
-    val confText = ConfigSplitMerger.toConf(merged)
+    val confDigest = digest(ConfigSplitMerger.toConf(merged))
     downOtherTunnels(keepName = if (command == TunnelCommand.UP) tunnelName else null)
     if (desired == Tunnel.State.DOWN && actual == Tunnel.State.DOWN) {
       return
     }
-    if (desired == Tunnel.State.UP && actual == Tunnel.State.UP && lastUpConf[tunnelName] == confText) {
+    if (desired == Tunnel.State.UP && actual == Tunnel.State.UP && lastUpConfDigest[tunnelName] == confDigest) {
       return
     }
     val config = if (command == TunnelCommand.UP) merged else null
     runCatching { backend.setState(tunnel, desired, config) }
       .onSuccess { state ->
         if (state == Tunnel.State.UP) {
-          lastUpConf[tunnelName] = confText
+          lastUpConfDigest[tunnelName] = confDigest
         } else {
-          lastUpConf.remove(tunnelName)
+          lastUpConfDigest.remove(tunnelName)
         }
         log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
       }
@@ -78,13 +79,18 @@ class GoTunnelController(
       }
       runCatching { backend.setState(other, Tunnel.State.DOWN, null) }
         .onSuccess {
-          lastUpConf.remove(name)
+          lastUpConfDigest.remove(name)
           log.record(LogKind.TUNNEL, "state=DOWN tunnel=$name")
         }
         .onFailure { error ->
           log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$name")
         }
     }
+  }
+
+  private fun digest(confText: String): String {
+    val bytes = MessageDigest.getInstance("SHA-256").digest(confText.toByteArray(Charsets.UTF_8))
+    return bytes.joinToString("") { byte -> "%02x".format(byte) }
   }
 }
 
