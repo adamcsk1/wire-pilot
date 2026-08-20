@@ -72,4 +72,6 @@
   <string name="copy_log">Copy log</string>
   <string name="clear_log">Clear</string>
   <string name="log_copied">Log copied</string>
+  <string name="log_title">Log</string>
+  <string name="settings_title">Settings</string>
 </resources>

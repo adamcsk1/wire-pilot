@@ -13,6 +13,7 @@
     <item name="colorTertiaryContainer">@color/secondary_container</item>
     <item name="colorOnTertiaryContainer">@color/on_secondary_container</item>
     <item name="colorOutline">@color/outline</item>
+    <item name="colorControlNormal">@color/on_surface</item>
     <item name="android:colorBackground">@color/surface</item>
     <item name="colorSurface">@color/surface_card</item>
     <item name="colorOnSurface">@color/on_surface</item>
@@ -22,5 +23,13 @@
     <item name="android:windowLightStatusBar">true</item>
     <item name="android:windowTranslucentStatus">false</item>
     <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    <item name="materialButtonOutlinedStyle">@style/Widget.WirePilot.Button.Outlined</item>
+  </style>
+
+  <style name="Widget.WirePilot.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+    <item name="strokeColor">@color/copper</item>
+    <item name="android:textColor">@color/copper</item>
+    <item name="iconTint">@color/copper</item>
+    <item name="rippleColor">@color/copper</item>
   </style>
 </resources>

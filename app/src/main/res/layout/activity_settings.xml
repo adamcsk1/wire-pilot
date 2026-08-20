@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/settingsToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:navigationIcon="?attr/homeAsUpIndicator"
+    app:navigationIconTint="@color/on_surface"
+    app:title="@string/settings_title"
+    app:titleTextColor="@color/on_surface" />
+
+  <ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="20dp">
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/setupCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/setup_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <LinearLayout
+            android:id="@+id/setupList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/openWireGuardButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/open_wireguard" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/keepRunningCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/keep_running_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/keep_running_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/appInfoButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/open_app_info" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/batteryOptimizationButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/open_battery_optimization" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/unusedAppsButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/open_unused_apps" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/locationSettingsButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/open_location_settings" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>
