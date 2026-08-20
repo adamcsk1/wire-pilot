@@ -51,11 +51,11 @@ class SsidProbeFormatterTest {
     )
     assertEquals(
       "nearby=T fine=F locOn=T links=w1,c1,v1,o1 " +
-        "[wifi=T cell=F vpn=F transport=WifiInfo ssidRaw=<unknown ssid> wifiSsid=null] " +
+        "[wifi=T cell=F vpn=F transport=WifiInfo ssidRaw=${SsidRedactor.redact("<unknown ssid>")} wifiSsid=null] " +
         "[wifi=F cell=T vpn=F transport=null ssidRaw=null wifiSsid=null] " +
         "[wifi=F cell=F vpn=T transport=VpnTransportInfo ssidRaw=null wifiSsid=null] " +
         "[wifi=F cell=F vpn=F transport=null ssidRaw=null wifiSsid=null] " +
-        "conn.ssid=<unknown ssid> conn.wifiSsid=null",
+        "conn.ssid=${SsidRedactor.redact("<unknown ssid>")} conn.wifiSsid=null",
       detail,
     )
   }

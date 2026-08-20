@@ -43,7 +43,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.DOWN),
     )
     assertEquals(
-      "trigger=debounce apply=down via=go-backend net=WIFI ssid=Cafe,Home tunnel=office retry=1/1 ssidSource=none",
+      "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe")},${SsidRedactor.redact("Home")} tunnel=office retry=1/1 ssidSource=none",
       detail,
     )
   }
@@ -79,16 +79,16 @@ class LogFormatterTest {
   @Test
   fun networkChangeDetail() {
     assertEquals(
-      "net=WIFI ssid=Home ssidSource=none",
+      "net=WIFI ssid=${SsidRedactor.redact("Home")} ssidSource=none",
       LogFormatter.networkChangeDetail(NetworkSnapshot(NetworkKind.WIFI, setOf("Home"))),
     )
   }
 
   @Test
-  fun applyIncludesProbeButNetworkChangeDoesNot() {
+  fun applyOmitsProbeAndRedactsSsid() {
     val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), probe = "nearby=T fine=T locOn=T")
     assertEquals(
-      "trigger=apply apply=up via=go-backend net=WIFI ssid=Home tunnel=office retry=1/1 ssidSource=none nearby=T fine=T locOn=T",
+      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office retry=1/1 ssidSource=none",
       LogFormatter.applyDetail(
         trigger = "apply",
         control = StoredControl(tunnelName = "office"),
@@ -97,7 +97,7 @@ class LogFormatterTest {
       ),
     )
     assertEquals(
-      "net=WIFI ssid=Home ssidSource=none",
+      "net=WIFI ssid=${SsidRedactor.redact("Home")} ssidSource=none",
       LogFormatter.networkChangeDetail(network),
     )
   }

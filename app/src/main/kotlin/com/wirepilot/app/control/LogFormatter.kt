@@ -33,8 +33,7 @@ object LogFormatter {
       is PolicyDecision.Apply -> "${decision.command.name.lowercase()} via=go-backend"
     }
     val tunnel = control.tunnelName.ifBlank { "(blank)" }
-    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel retry=$attempt/$maxAttempts ssidSource=${network.ssidSource}" +
-      probeSuffix(network)
+    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel retry=$attempt/$maxAttempts ssidSource=${network.ssidSource}"
   }
 
   fun networkChangeDetail(network: NetworkSnapshot): String {
@@ -51,13 +50,15 @@ object LogFormatter {
     return if (body.isBlank()) header else "$header\n$body"
   }
 
-  private fun probeSuffix(network: NetworkSnapshot): String {
-    return if (network.probe.isBlank()) "" else " ${network.probe}"
-  }
-
   private fun ssidLabel(network: NetworkSnapshot): String {
     return when (network.kind) {
-      NetworkKind.WIFI -> if (network.wifiSsids.isEmpty()) "?" else network.wifiSsids.sorted().joinToString(",")
+      NetworkKind.WIFI -> {
+        if (network.wifiSsids.isEmpty()) {
+          "?"
+        } else {
+          network.wifiSsids.sorted().joinToString(",") { ssid -> SsidRedactor.redact(ssid) }
+        }
+      }
       NetworkKind.WIFI_SETTLING -> "?"
       NetworkKind.MOBILE, NetworkKind.OTHER -> "-"
     }

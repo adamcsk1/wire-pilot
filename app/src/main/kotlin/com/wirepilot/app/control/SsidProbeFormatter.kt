@@ -22,7 +22,7 @@ object SsidProbeFormatter {
     val otherCount = links.count { !it.wifi && !it.cellular && !it.vpn }
     val linkText = links.joinToString(" ") { link ->
       "[wifi=${flag(link.wifi)} cell=${flag(link.cellular)} vpn=${flag(link.vpn)} " +
-        "transport=${link.transportClass} ssidRaw=${label(link.ssidRaw)} wifiSsid=${label(link.wifiSsidRaw)}]"
+        "transport=${link.transportClass} ssidRaw=${SsidRedactor.redactNullable(link.ssidRaw)} wifiSsid=${SsidRedactor.redactNullable(link.wifiSsidRaw)}]"
     }
     val linksPart = if (linkText.isBlank()) "" else " $linkText"
     return "nearby=${flag(readiness.nearbyWifiGranted)} " +
@@ -30,14 +30,10 @@ object SsidProbeFormatter {
       "locOn=${flag(readiness.locationEnabled)} " +
       "links=w$wifiCount,c$cellularCount,v$vpnCount,o$otherCount" +
       linksPart +
-      " conn.ssid=${label(connectionSsid)} conn.wifiSsid=${label(connectionWifiSsid)}"
+      " conn.ssid=${SsidRedactor.redactNullable(connectionSsid)} conn.wifiSsid=${SsidRedactor.redactNullable(connectionWifiSsid)}"
   }
 
   private fun flag(value: Boolean): String {
     return if (value) "T" else "F"
-  }
-
-  private fun label(value: String?): String {
-    return value ?: "null"
   }
 }
