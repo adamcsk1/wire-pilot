@@ -12,9 +12,12 @@ You are the primary coding agent for WirePilot — a single-purpose Android VPN 
 - Embed the official tunnel library; do not talk to `com.wireguard.android` via broadcasts
 - Control the active imported tunnel through `GoBackend.setState`
 - Keep decision logic in `control/` and `data/`
+- Never persist plaintext private keys; never `Log.d` policy, SSID, or probe details
 - No foreground service, polling, or battery-optimization prompt
 - Network change and boot debounce is 3 seconds
+- Last-known SSID TTL is 60 seconds
 - Pause expiry applies immediately
+- Off/Pause or connect-on-mobile off is `DOWN` when a tunnel is selected
 - JaCoCo instruction coverage for `control` and `data` stays at or above 95%
 - AGP 9+ provides Kotlin; do not add `org.jetbrains.kotlin.android` unless required
 

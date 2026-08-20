@@ -14,8 +14,8 @@ Review the changed files. Check each one against the rules below and report find
 - Embed `com.wireguard.android:tunnel`; do not send official-app broadcasts or use `CONTROL_TUNNELS`
 - Control the active imported tunnel with `GoBackend.setState`
 - Import/export official ZIP/`.conf`; split tunnel is exclude XOR include
-- Never log private keys
-- Policy: excluded SSID down; otherwise up; skip when SSID unreadable; Off/Pause with a selected tunnel is DOWN
+- Never persist plaintext private keys; never log private keys; never `Log.d` policy/SSID/probe
+- Policy: excluded SSID down; otherwise up; skip when SSID unreadable unless last-known is within 60s; Off/Pause with a selected tunnel is DOWN; connect-on-mobile off is DOWN
 - 3s debounce on network/boot; immediate apply on pause expiry
 - No polling or ignore-battery-optimizations
 - Pure logic in `control/` and `data/`

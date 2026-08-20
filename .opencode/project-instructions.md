@@ -14,8 +14,9 @@ Policy:
 
 - Control off or pause active: `DOWN` if a tunnel is selected
 - Blank / no imported tunnel: do nothing
-- On Wi-Fi with unreadable SSID: do nothing (unless last-known SSID applies)
+- On Wi-Fi with unreadable SSID: do nothing (unless last-known SSID is within 60s)
 - On Wi-Fi and SSID is excluded: `DOWN`
+- Cellular / other with connect-on-mobile off: `DOWN`
 - Every other case, including cellular: `UP`
 - Read SSID from every `TRANSPORT_WIFI` network, never only `activeNetwork`
 - Network change and boot wait 3 seconds, then apply once
@@ -32,7 +33,7 @@ app/src/main/kotlin/com/wirepilot/app/receiver/  Boot, network, pause receivers
 app/src/test/kotlin/                            JVM unit tests
 ```
 
-Keep decision logic in `control/` and `data/`. Keep Activity, receivers, ConnectivityManager, AlarmManager, and SharedPreferences thin. Never log private keys.
+Keep decision logic in `control/` and `data/`. Keep Activity, receivers, ConnectivityManager, AlarmManager, and SharedPreferences thin. Never persist plaintext private keys. Never `Log.d` policy, SSID, or probe details. Never log private keys.
 
 ## Commands
 
