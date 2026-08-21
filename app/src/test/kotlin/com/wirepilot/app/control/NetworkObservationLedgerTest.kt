@@ -90,15 +90,15 @@ class NetworkObservationLedgerTest {
   }
 
   @Test
-  fun currentNullRefreshCannotEraseCallbackObservation() {
+  fun currentNullRefreshRemovesLostCallbackNetwork() {
     val ledger = NetworkObservationLedger<String>()
-    val callback = observation("Home")
-    ledger.observe("wifi", callback)
+    ledger.observe("wifi", observation("Home"))
     val revision = ledger.beginRefresh("wifi")
 
     ledger.refresh("wifi", revision, null)
+    ledger.refresh("wifi", ledger.beginRefresh("wifi"), observation("Home"))
 
-    assertEquals(listOf(callback), ledger.values())
+    assertEquals(emptyList(), ledger.values())
   }
 
   @Test

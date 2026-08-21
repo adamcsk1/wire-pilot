@@ -1,22 +1,10 @@
 package com.wirepilot.app.control
 
-import com.wirepilot.app.data.SsidNormalizer
-
 data class InventoryLink(
   val wifi: Boolean,
   val cellular: Boolean,
   val rawSsid: String?,
 )
-
-object ConnectionInfoFallback {
-  fun allow(links: List<InventoryLink>): Boolean {
-    val wifiLinks = links.filter { it.wifi }
-    if (wifiLinks.isEmpty()) {
-      return false
-    }
-    return wifiLinks.none { SsidNormalizer.normalize(it.rawSsid) != null }
-  }
-}
 
 object InventoryMapper {
   fun toSnapshot(links: List<InventoryLink>, ssidSource: String = "transport"): NetworkSnapshot {

@@ -2,8 +2,6 @@ package com.wirepilot.app.platform
 
 import android.content.Context
 import androidx.core.content.edit
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.wirepilot.app.data.AppLockCodec
 import com.wirepilot.app.data.AppLockState
 import com.wirepilot.app.data.AppLockStore
@@ -11,15 +9,7 @@ import com.wirepilot.app.data.AppLockStore
 class EncryptedAppLockStore(
   context: Context,
 ) : AppLockStore {
-  private val preferences = EncryptedSharedPreferences.create(
-    context.applicationContext,
-    FILE,
-    MasterKey.Builder(context.applicationContext)
-      .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-      .build(),
-    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-  )
+  private val preferences = TinkEncryptedPreferences(context.applicationContext, FILE)
 
   override fun read(): AppLockState {
     return AppLockCodec.decode(preferences.getString(KEY, null))

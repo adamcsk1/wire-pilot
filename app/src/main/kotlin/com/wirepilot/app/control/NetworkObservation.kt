@@ -92,7 +92,10 @@ class NetworkObservationLedger<Key> {
     when (sources[key]) {
       Source.TOMBSTONE -> return
       Source.CALLBACK -> {
-        if (candidate != null) {
+        if (candidate == null) {
+          observations.remove(key)
+          sources[key] = Source.TOMBSTONE
+        } else {
           observations[key]?.let { existing ->
             observations[key] = NetworkObservationMerger.refreshAuthoritative(existing, candidate)
           }
@@ -185,9 +188,6 @@ object LastKnownRememberPolicy {
   ): Boolean {
     if (snapshot.kind != NetworkKind.WIFI) {
       return false
-    }
-    if (snapshot.ssidSource == "connectionInfo") {
-      return true
     }
     return readableRevision > rememberedRevision
   }

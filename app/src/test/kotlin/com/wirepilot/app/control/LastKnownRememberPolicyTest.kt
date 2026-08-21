@@ -15,13 +15,6 @@ class LastKnownRememberPolicyTest {
   }
 
   @Test
-  fun connectionInfoReadIsAlwaysFresh() {
-    val snapshot = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), ssidSource = "connectionInfo")
-
-    assertTrue(LastKnownRememberPolicy.shouldRemember(snapshot, readableRevision = 0L, rememberedRevision = 0L))
-  }
-
-  @Test
   fun unreadableOrUnversionedTransportIsNotRemembered() {
     assertFalse(
       LastKnownRememberPolicy.shouldRemember(

@@ -1,13 +1,10 @@
 package com.wirepilot.app.platform
 
 import android.content.Context
-import androidx.security.crypto.EncryptedFile
-import androidx.security.crypto.MasterKey
 import com.wirepilot.app.control.ConfigZipNames
 import com.wirepilot.app.data.TunnelCatalog
 import java.io.File
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -17,9 +14,7 @@ class FileTunnelCatalog(
   private val appContext = context.applicationContext
   private val directory = File(appContext.filesDir, "tunnels").apply { mkdirs() }
   private val stagingDirectory = File(directory, ".staging").apply { mkdirs() }
-  private val masterKey = MasterKey.Builder(appContext)
-    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-    .build()
+  private val files = TinkEncryptedFiles(appContext)
 
   override fun names(): List<String> {
     return directory.listFiles()
@@ -69,21 +64,8 @@ class FileTunnelCatalog(
     return File(directory, ConfigZipNames.fileName(name))
   }
 
-  private fun encrypted(file: File): EncryptedFile {
-    return EncryptedFile.Builder(
-      appContext,
-      file,
-      masterKey,
-      EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
-    ).build()
-  }
-
   private fun readEncrypted(file: File): String? {
-    return runCatching {
-      encrypted(file).openFileInput().use { input ->
-        input.readBytes().toString(StandardCharsets.UTF_8)
-      }
-    }.getOrNull()
+    return files.read(file)
   }
 
   private fun siblingTemp(file: File): File {
@@ -111,9 +93,7 @@ class FileTunnelCatalog(
     if (staging.exists() && !staging.delete()) {
       throw IOException("could not clear staging ${target.name}")
     }
-    encrypted(staging).openFileOutput().use { output ->
-      output.write(conf.toByteArray(StandardCharsets.UTF_8))
-    }
+    files.write(staging, conf)
     if (readEncrypted(staging) == null) {
       staging.delete()
       throw IOException("staging decrypt failed ${target.name}")

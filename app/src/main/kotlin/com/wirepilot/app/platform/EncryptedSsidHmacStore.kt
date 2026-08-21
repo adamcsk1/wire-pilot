@@ -2,22 +2,12 @@ package com.wirepilot.app.platform
 
 import android.content.Context
 import androidx.core.content.edit
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import java.security.SecureRandom
 
 class EncryptedSsidHmacStore(
   context: Context,
 ) {
-  private val preferences = EncryptedSharedPreferences.create(
-    context.applicationContext,
-    FILE,
-    MasterKey.Builder(context.applicationContext)
-      .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-      .build(),
-    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-  )
+  private val preferences = TinkEncryptedPreferences(context.applicationContext, FILE)
 
   fun getOrCreate(): ByteArray {
     val existing = fromHex(preferences.getString(KEY, null))

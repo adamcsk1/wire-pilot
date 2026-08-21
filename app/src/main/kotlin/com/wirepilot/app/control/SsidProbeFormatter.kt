@@ -13,8 +13,6 @@ object SsidProbeFormatter {
   fun format(
     readiness: SsidReadiness,
     links: List<SsidProbeLink>,
-    connectionSsid: String?,
-    connectionWifiSsid: String?,
   ): String {
     val wifiCount = links.count { it.wifi }
     val cellularCount = links.count { it.cellular }
@@ -29,8 +27,7 @@ object SsidProbeFormatter {
       "fine=${flag(readiness.fineLocationGranted)} " +
       "locOn=${flag(readiness.locationEnabled)} " +
       "links=w$wifiCount,c$cellularCount,v$vpnCount,o$otherCount" +
-      linksPart +
-      " conn.ssid=${SsidRedactor.redactNullable(connectionSsid)} conn.wifiSsid=${SsidRedactor.redactNullable(connectionWifiSsid)}"
+      linksPart
   }
 
   private fun flag(value: Boolean): String {
