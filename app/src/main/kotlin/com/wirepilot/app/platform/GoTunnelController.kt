@@ -49,7 +49,7 @@ class GoTunnelController(
       return false
     }
     pending[tunnelName]?.let { return it.wantUp }
-    val tunnel = tunnels.getOrPut(tunnelName) { NamedTunnel(tunnelName) }
+    val tunnel = tunnels.getOrPut(tunnelName) { namedTunnel(tunnelName) }
     return runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN) == Tunnel.State.UP
   }
 
@@ -75,7 +75,7 @@ class GoTunnelController(
       return
     }
     val merged = ConfigSplitMerger.merge(parsed, splitTunnels.read(tunnelName))
-    val tunnel = tunnels.getOrPut(tunnelName) { NamedTunnel(tunnelName) }
+    val tunnel = tunnels.getOrPut(tunnelName) { namedTunnel(tunnelName) }
     val desired = if (command == TunnelCommand.UP) Tunnel.State.UP else Tunnel.State.DOWN
     val actual = runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN)
     val confDigest = digest(ConfigSplitMerger.toConf(merged))
@@ -131,6 +131,17 @@ class GoTunnelController(
     }
   }
 
+  private fun namedTunnel(tunnelName: String): NamedTunnel {
+    return NamedTunnel(tunnelName) { state -> onExternalState(tunnelName, state) }
+  }
+
+  private fun onExternalState(tunnelName: String, newState: Tunnel.State) {
+    if (newState == Tunnel.State.DOWN) {
+      lastUpConfDigest.remove(tunnelName)
+    }
+    notifySettled()
+  }
+
   private fun notifySettled() {
     val listener = settledListener ?: return
     mainHandler.post(listener)
@@ -149,8 +160,9 @@ private data class PendingCommand(
 
 class NamedTunnel(
   private val tunnelName: String,
+  private val onChanged: (Tunnel.State) -> Unit = {},
 ) : Tunnel {
   override fun getName(): String = tunnelName
 
-  override fun onStateChange(newState: Tunnel.State) = Unit
+  override fun onStateChange(newState: Tunnel.State) = onChanged(newState)
 }
