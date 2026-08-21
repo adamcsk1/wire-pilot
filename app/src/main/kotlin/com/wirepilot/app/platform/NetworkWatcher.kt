@@ -17,12 +17,10 @@ class NetworkWatcher(
   private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
   private var fallbacksRegistered = false
   private var liveRegistered = false
-  private val liveCallback = object : ConnectivityManager.NetworkCallback() {
+  private val liveCallback = object : ConnectivityManager.NetworkCallback(
+    ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
+  ) {
     override fun onAvailable(network: Network) {
-      val capabilities = connectivityManager.getNetworkCapabilities(network)
-      if (capabilities != null) {
-        inventory.put(network, capabilities)
-      }
       onNetworkChanged()
     }
 
@@ -32,7 +30,7 @@ class NetworkWatcher(
     }
 
     override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-      inventory.put(network, networkCapabilities)
+      inventory.observeCallback(network, networkCapabilities)
       onNetworkChanged()
     }
   }

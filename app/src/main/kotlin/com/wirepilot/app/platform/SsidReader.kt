@@ -7,6 +7,7 @@ import com.wirepilot.app.control.ConnectionInfoFallback
 import com.wirepilot.app.control.InventoryLink
 import com.wirepilot.app.control.InventoryMapper
 import com.wirepilot.app.control.LastKnownSsid
+import com.wirepilot.app.control.LastKnownRememberPolicy
 import com.wirepilot.app.control.NetworkKind
 import com.wirepilot.app.control.NetworkSnapshot
 import com.wirepilot.app.data.SsidNormalizer
@@ -20,11 +21,15 @@ class SsidReader(
   private val readiness: () -> SsidReadiness,
   private val lastKnown: LastKnownSsid,
 ) {
+  private var rememberedReadableRevision = 0L
+
+  @Synchronized
   fun snapshot(): NetworkSnapshot {
     lastKnown.expireIfStale()
     refreshKnownNetworks()
     offer(connectivityManager.activeNetwork)
-    val links = inventory.links()
+    val observationState = inventory.state()
+    val links = observationState.observations.map { observation -> observation.link }
     val fromTransport = InventoryMapper.toSnapshot(links, ssidSource = "transport")
     val connection = connectionInfo()
     val snapshot = if (fromTransport.kind == NetworkKind.WIFI) {
@@ -37,13 +42,22 @@ class SsidReader(
     val withProbe = snapshot.copy(
       probe = SsidProbeFormatter.format(
         readiness = readiness(),
-        links = inventory.probeLinks(),
+        links = observationState.observations.map { observation -> observation.probe },
         connectionSsid = connection.ssid,
         connectionWifiSsid = connection.wifiSsid,
       ),
     )
     if (withProbe.kind == NetworkKind.WIFI) {
-      lastKnown.remember(withProbe)
+      if (LastKnownRememberPolicy.shouldRemember(
+          snapshot = withProbe,
+          readableRevision = observationState.readableRevision,
+          rememberedRevision = rememberedReadableRevision,
+        )) {
+        lastKnown.remember(withProbe)
+        if (withProbe.ssidSource != "connectionInfo") {
+          rememberedReadableRevision = observationState.readableRevision
+        }
+      }
       return withProbe
     }
     return lastKnown.takeIfSettling(withProbe)
@@ -70,6 +84,7 @@ class SsidReader(
 
   @Suppress("DEPRECATION")
   private fun refreshKnownNetworks() {
+    val scanToken = inventory.beginScan()
     val currentNetworks = runCatching { connectivityManager.allNetworks.toSet() }.getOrNull()
     if (currentNetworks == null) {
       inventory.networks().forEach { network -> refresh(network) }
@@ -78,28 +93,20 @@ class SsidReader(
     currentNetworks.forEach { network ->
       refresh(network)
     }
-    inventory.networks().forEach { network ->
-      if (network !in currentNetworks) {
-        inventory.remove(network)
-      }
-    }
+    inventory.removeMissing(currentNetworks, scanToken)
   }
 
   private fun refresh(network: Network) {
+    val revision = inventory.beginRefresh(network)
     val capabilities = connectivityManager.getNetworkCapabilities(network)
-    if (capabilities == null) {
-      inventory.remove(network)
-    } else {
-      inventory.put(network, capabilities)
-    }
+    inventory.observeRefresh(network, revision, capabilities)
   }
 
   private fun offer(network: Network?) {
     if (network == null) {
       return
     }
-    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return
-    inventory.put(network, capabilities)
+    refresh(network)
   }
 
   @Suppress("DEPRECATION")

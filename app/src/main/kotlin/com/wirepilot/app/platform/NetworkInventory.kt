@@ -4,61 +4,60 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import com.wirepilot.app.control.InventoryLink
-import com.wirepilot.app.data.SsidNormalizer
+import com.wirepilot.app.control.NetworkObservation
+import com.wirepilot.app.control.NetworkObservationLedger
+import com.wirepilot.app.control.NetworkObservationProjector
+import com.wirepilot.app.control.NetworkObservationState
+import com.wirepilot.app.control.NetworkTransportObservation
 import com.wirepilot.app.control.SsidProbeLink
-import java.util.concurrent.ConcurrentHashMap
 
 class NetworkInventory {
-  private val capabilitiesByNetwork = ConcurrentHashMap<Network, NetworkCapabilities>()
+  private val observations = NetworkObservationLedger<Network>()
 
-  fun put(network: Network, capabilities: NetworkCapabilities) {
-    capabilitiesByNetwork[network] = capabilities
+  fun observeCallback(network: Network, capabilities: NetworkCapabilities) {
+    observations.observe(network, observation(capabilities))
+  }
+
+  fun beginRefresh(network: Network): Long = observations.beginRefresh(network)
+
+  fun observeRefresh(network: Network, revision: Long, capabilities: NetworkCapabilities?) {
+    observations.refresh(network, revision, capabilities?.let(::observation))
   }
 
   fun remove(network: Network) {
-    capabilitiesByNetwork.remove(network)
+    observations.observe(network, null)
   }
 
-  fun networks(): Set<Network> {
-    return capabilitiesByNetwork.keys.toSet()
+  fun beginScan(): NetworkObservationLedger.ScanToken = observations.beginScan()
+
+  fun removeMissing(networks: Set<Network>, scanToken: NetworkObservationLedger.ScanToken) {
+    observations.removeMissing(networks, scanToken)
   }
+
+  fun networks(): Set<Network> = observations.keys()
 
   fun links(): List<InventoryLink> {
-    return capabilitiesByNetwork.values.map { capabilities ->
-      val wifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-      InventoryLink(
-        wifi = wifi,
-        cellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
-        rawSsid = if (wifi) readableSsidFrom(capabilities) else null,
-      )
-    }
+    return observations.values().map { observation -> observation.link }
   }
 
   fun probeLinks(): List<SsidProbeLink> {
-    return capabilitiesByNetwork.values.map { capabilities ->
-      val wifiInfo = capabilities.transportInfo as? WifiInfo
-      SsidProbeLink(
+    return observations.values().map { observation -> observation.probe }
+  }
+
+  fun state(): NetworkObservationState = observations.state()
+
+  private fun observation(capabilities: NetworkCapabilities): NetworkObservation? {
+    val wifiInfo = capabilities.transportInfo as? WifiInfo
+    return NetworkObservationProjector.project(
+      NetworkTransportObservation(
         wifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI),
         cellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
         vpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN),
         transportClass = capabilities.transportInfo?.javaClass?.simpleName ?: "null",
         ssidRaw = wifiInfo?.ssid,
         wifiSsidRaw = wifiSsidRaw(wifiInfo),
-      )
-    }
-  }
-
-  private fun readableSsidFrom(capabilities: NetworkCapabilities): String? {
-    val wifiInfo = capabilities.transportInfo as? WifiInfo ?: return null
-    val ssid = wifiInfo.ssid
-    if (SsidNormalizer.normalize(ssid) != null) {
-      return ssid
-    }
-    val fromWifiSsid = wifiSsidRaw(wifiInfo)
-    if (SsidNormalizer.normalize(fromWifiSsid) != null) {
-      return fromWifiSsid
-    }
-    return ssid ?: fromWifiSsid
+      ),
+    )
   }
 }
 
