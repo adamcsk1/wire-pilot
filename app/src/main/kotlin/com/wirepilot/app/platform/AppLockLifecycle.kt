@@ -9,18 +9,31 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.wirepilot.app.LockActivity
+import com.wirepilot.app.control.AppLockPolicy
 import com.wirepilot.app.control.AppLockSession
 
 class AppLockLifecycle(
   private val session: AppLockSession,
 ) : Application.ActivityLifecycleCallbacks, DefaultLifecycleObserver {
+  private var backgroundedAtMillis: Long? = null
+
   fun register(application: Application) {
     application.registerActivityLifecycleCallbacks(this)
     ProcessLifecycleOwner.get().lifecycle.addObserver(this)
   }
 
+  override fun onStart(owner: LifecycleOwner) {
+    val leftAt = backgroundedAtMillis
+    backgroundedAtMillis = null
+    if (leftAt != null &&
+      AppLockPolicy.shouldLockAfterBackground(System.currentTimeMillis() - leftAt)
+    ) {
+      session.lock()
+    }
+  }
+
   override fun onStop(owner: LifecycleOwner) {
-    session.lock()
+    backgroundedAtMillis = System.currentTimeMillis()
   }
 
   override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {

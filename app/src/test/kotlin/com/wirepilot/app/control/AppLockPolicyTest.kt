@@ -60,6 +60,14 @@ class AppLockPolicyTest {
   }
 
   @Test
+  fun backgroundLockAfterThirtySeconds() {
+    assertFalse(AppLockPolicy.shouldLockAfterBackground(0L))
+    assertFalse(AppLockPolicy.shouldLockAfterBackground(AppLockPolicy.BACKGROUND_LOCK_DELAY_MS - 1L))
+    assertTrue(AppLockPolicy.shouldLockAfterBackground(AppLockPolicy.BACKGROUND_LOCK_DELAY_MS))
+    assertTrue(AppLockPolicy.shouldLockAfterBackground(AppLockPolicy.BACKGROUND_LOCK_DELAY_MS + 1L))
+  }
+
+  @Test
   fun biometricOnlyWhenEnabled() {
     val disabled = AppLockPolicy.setBiometric(AppLockState(), true)
     assertFalse(disabled.biometricEnabled)

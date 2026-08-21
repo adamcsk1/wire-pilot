@@ -148,7 +148,7 @@
   <string name="usage_sent">Sent</string>
   <string name="app_lock_section">App lock</string>
   <string name="app_lock">App lock</string>
-  <string name="app_lock_hint">Require a PIN, or biometrics, when opening WirePilot.</string>
+  <string name="app_lock_hint">Require a PIN, or biometrics, on launch and after 30 seconds in the background.</string>
   <string name="unlock_with_biometrics">Unlock with biometrics</string>
   <string name="lock_title">Unlock</string>
   <string name="lock_unlock_message">Enter your PIN to open WirePilot.</string>

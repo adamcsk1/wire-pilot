@@ -6,6 +6,11 @@ import java.security.MessageDigest
 object AppLockPolicy {
   const val MIN_PIN_LENGTH = 4
   const val MAX_PIN_LENGTH = 8
+  const val BACKGROUND_LOCK_DELAY_MS = 30_000L
+
+  fun shouldLockAfterBackground(elapsedMillis: Long): Boolean {
+    return elapsedMillis >= BACKGROUND_LOCK_DELAY_MS
+  }
 
   fun isValidPin(pin: String): Boolean {
     return pin.length in MIN_PIN_LENGTH..MAX_PIN_LENGTH && pin.all { character -> character.isDigit() }
