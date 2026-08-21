@@ -173,9 +173,9 @@ fun coverageClassTree(): ConfigurableFileTree {
 dependencies {
   coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
   implementation("androidx.core:core-ktx:1.19.0")
-  implementation("androidx.appcompat:appcompat:1.7.1")
+  implementation("androidx.appcompat:appcompat:1.8.0")
   implementation("com.google.android.material:material:1.14.0")
   implementation("com.wireguard.android:tunnel:1.0.20260102")
-  implementation("androidx.security:security-crypto:1.1.0-alpha06")
+  implementation("androidx.security:security-crypto:1.1.0")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
 }
