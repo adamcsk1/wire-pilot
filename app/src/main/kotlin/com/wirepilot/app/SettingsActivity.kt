@@ -34,10 +34,8 @@ class SettingsActivity : AppCompatActivity() {
   private lateinit var locationPermissionStatus: TextView
   private lateinit var nearbyWifiStatus: TextView
   private lateinit var locationSettingsStatus: TextView
-  private lateinit var appInfoStatus: TextView
   private lateinit var batteryOptimizationStatus: TextView
   private lateinit var unusedAppsStatusView: TextView
-  private lateinit var vpnSettingsStatus: TextView
   private var unusedAppsStatus = SettingsRowStatus.UNKNOWN
   private var suppressLockSwitch = false
   private var suppressBiometricSwitch = false
@@ -57,10 +55,8 @@ class SettingsActivity : AppCompatActivity() {
     locationPermissionStatus = findViewById(R.id.locationPermissionStatus)
     nearbyWifiStatus = findViewById(R.id.nearbyWifiStatus)
     locationSettingsStatus = findViewById(R.id.locationSettingsStatus)
-    appInfoStatus = findViewById(R.id.appInfoStatus)
     batteryOptimizationStatus = findViewById(R.id.batteryOptimizationStatus)
     unusedAppsStatusView = findViewById(R.id.unusedAppsStatus)
-    vpnSettingsStatus = findViewById(R.id.vpnSettingsStatus)
     findViewById<MaterialToolbar>(R.id.settingsToolbar).setNavigationOnClickListener {
       onBackPressedDispatcher.onBackPressed()
     }
@@ -129,10 +125,8 @@ class SettingsActivity : AppCompatActivity() {
     bindOnOff(locationPermissionStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.fineLocationGranted(this)))
     bindOnOff(nearbyWifiStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.nearbyWifiGranted(this)))
     bindOnOff(locationSettingsStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.locationEnabled(this)))
-    bindUnknown(appInfoStatus)
     bindBattery(batteryOptimizationStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.batteryUnrestricted(this)))
     bindUnused(unusedAppsStatusView, unusedAppsStatus)
-    bindUnknown(vpnSettingsStatus)
   }
 
   private fun refreshUnusedAppsStatus() {
@@ -157,37 +151,42 @@ class SettingsActivity : AppCompatActivity() {
   }
 
   private fun bindOnOff(view: TextView, status: SettingsRowStatus) {
-    view.setText(
-      when (status) {
-        SettingsRowStatus.ON -> R.string.settings_status_on
-        SettingsRowStatus.OFF -> R.string.settings_status_off
-        SettingsRowStatus.UNKNOWN -> R.string.settings_status_unknown
-      },
-    )
+    bindStatus(view, status, R.string.settings_status_on, R.string.settings_status_off)
   }
 
   private fun bindBattery(view: TextView, status: SettingsRowStatus) {
-    view.setText(
-      when (status) {
-        SettingsRowStatus.ON -> R.string.settings_status_unrestricted
-        SettingsRowStatus.OFF -> R.string.settings_status_optimized
-        SettingsRowStatus.UNKNOWN -> R.string.settings_status_unknown
-      },
-    )
+    bindStatus(view, status, R.string.settings_status_unrestricted, R.string.settings_status_optimized)
   }
 
   private fun bindUnused(view: TextView, status: SettingsRowStatus) {
+    bindStatus(view, status, R.string.settings_status_allowed, R.string.settings_status_restricted)
+  }
+
+  private fun bindStatus(view: TextView, status: SettingsRowStatus, onText: Int, offText: Int) {
     view.setText(
       when (status) {
-        SettingsRowStatus.ON -> R.string.settings_status_allowed
-        SettingsRowStatus.OFF -> R.string.settings_status_restricted
+        SettingsRowStatus.ON -> onText
+        SettingsRowStatus.OFF -> offText
         SettingsRowStatus.UNKNOWN -> R.string.settings_status_unknown
       },
     )
-  }
-
-  private fun bindUnknown(view: TextView) {
-    view.setText(R.string.settings_status_unknown)
+    view.setBackgroundResource(
+      when (status) {
+        SettingsRowStatus.ON -> R.drawable.status_on_background
+        SettingsRowStatus.OFF -> R.drawable.status_off_background
+        SettingsRowStatus.UNKNOWN -> R.drawable.status_unknown_background
+      },
+    )
+    view.setTextColor(
+      ContextCompat.getColor(
+        this,
+        when (status) {
+          SettingsRowStatus.ON -> R.color.on_secondary_container
+          SettingsRowStatus.OFF -> R.color.on_primary_container
+          SettingsRowStatus.UNKNOWN -> R.color.on_surface_muted
+        },
+      ),
+    )
   }
 
   private fun themeModeFor(checkedId: Int): ThemeMode? {

@@ -17,63 +17,119 @@
     app:title="@string/usage_title"
     app:titleTextColor="@color/on_surface" />
 
-  <com.google.android.material.materialswitch.MaterialSwitch
-    android:id="@+id/usageSwitch"
+  <ScrollView
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginHorizontal="20dp"
-    android:text="@string/usage_enabled"
-    android:textColor="@color/on_surface" />
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
 
-  <TextView
-    android:id="@+id/usageHint"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginHorizontal="20dp"
-    android:layout_marginTop="8dp"
-    android:text="@string/usage_disabled_hint"
-    android:textColor="@color/on_surface_muted"
-    android:textSize="13sp" />
-
-  <LinearLayout
-    android:id="@+id/usageNumbers"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginHorizontal="20dp"
-    android:layout_marginTop="24dp"
-    android:orientation="vertical">
-
-    <TextView
+    <LinearLayout
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:text="@string/usage_received"
-      android:textColor="@color/on_surface_muted"
-      android:textSize="13sp" />
+      android:orientation="vertical"
+      android:padding="20dp">
 
-    <TextView
-      android:id="@+id/usageRx"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="4dp"
-      android:textColor="@color/on_surface"
-      android:textSize="28sp"
-      android:textStyle="bold" />
+      <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
 
-    <TextView
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="16dp"
-      android:text="@string/usage_sent"
-      android:textColor="@color/on_surface_muted"
-      android:textSize="13sp" />
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
 
-    <TextView
-      android:id="@+id/usageTx"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="4dp"
-      android:textColor="@color/on_surface"
-      android:textSize="28sp"
-      android:textStyle="bold" />
-  </LinearLayout>
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/usage_title"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/usage_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/usageSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/usage_enabled"
+            android:textColor="@color/on_surface" />
+
+          <TextView
+            android:id="@+id/usageHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/usage_disabled_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/usageNumbers"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/usage_received"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <TextView
+            android:id="@+id/usageRx"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/on_surface"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/usage_sent"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <TextView
+            android:id="@+id/usageTx"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/on_surface"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+  </ScrollView>
 </LinearLayout>

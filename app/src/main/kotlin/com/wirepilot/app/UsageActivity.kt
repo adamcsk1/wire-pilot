@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -19,7 +18,7 @@ class UsageActivity : AppCompatActivity() {
   private lateinit var controller: HomeController
   private lateinit var usageSwitch: MaterialSwitch
   private lateinit var usageHint: TextView
-  private lateinit var usageNumbers: LinearLayout
+  private lateinit var usageNumbers: com.google.android.material.card.MaterialCardView
   private lateinit var usageRx: TextView
   private lateinit var usageTx: TextView
   private val handler = Handler(Looper.getMainLooper())
