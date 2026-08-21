@@ -4,91 +4,62 @@ import com.wireguard.config.Config
 import com.wirepilot.app.control.ConfigZipLimits
 import com.wirepilot.app.control.ConfigZipNames
 import com.wirepilot.app.control.SplitTunnelPolicy
-import com.wirepilot.app.data.SplitTunnelStore
+import com.wirepilot.app.data.ConfigImportBatch
+import com.wirepilot.app.data.ImportedTunnel
 import com.wirepilot.app.data.StoredSplitTunnel
 import com.wirepilot.app.data.TunnelCatalog
-import java.io.BufferedReader
 import java.io.InputStream
-import java.io.InputStreamReader
 import java.io.OutputStream
-import java.io.Reader
 import java.nio.charset.StandardCharsets
+import java.nio.charset.CodingErrorAction
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 object ConfigZipIO {
-  fun peekNames(
+  fun readImport(
     input: InputStream,
     isZip: Boolean,
     fallbackName: String,
-  ): List<String> {
+  ): ConfigImportBatch? {
     return if (isZip) {
-      val names = mutableListOf<String>()
+      val imported = mutableListOf<ImportedTunnel>()
+      var totalBytes = 0
+      var entryIndex = 0
       ZipInputStream(input).use { zip ->
         while (true) {
           val entry = zip.nextEntry ?: break
-          if (entry.isDirectory) {
-            continue
+          if (entryIndex >= ConfigZipLimits.MAX_ENTRIES) {
+            return null
           }
-          val name = ConfigZipNames.tunnelNameFromPath(entry.name) ?: continue
-          names += name
-        }
-      }
-      names.distinct().sorted()
-    } else {
-      val name = ConfigZipNames.tunnelNameFromPath(fallbackName)
-        ?: ConfigZipNames.tunnelNameFromPath("$fallbackName.conf")
-      if (name == null) emptyList() else listOf(name)
-    }
-  }
-
-  fun importAll(
-    input: InputStream,
-    isZip: Boolean,
-    fallbackName: String,
-    catalog: TunnelCatalog,
-    splitTunnels: SplitTunnelStore? = null,
-  ): List<String> {
-    val imported = mutableListOf<String>()
-    if (isZip) {
-      ZipInputStream(input).use { zip ->
-        val reader = BufferedReader(InputStreamReader(zip, StandardCharsets.UTF_8))
-        var entryIndex = 0
-        var totalBytes = 0
-        while (true) {
-          val entry = zip.nextEntry ?: break
-          if (entry.isDirectory) {
-            continue
-          }
-          val name = ConfigZipNames.tunnelNameFromPath(entry.name) ?: continue
-          val conf = readLimited(reader, ConfigZipLimits.MAX_ENTRY_BYTES) ?: continue
-          if (!ConfigZipLimits.acceptEntry(entryIndex, conf.length, totalBytes + conf.length)) {
-            continue
-          }
-          val parsed = parseOrNull(conf) ?: continue
-          catalog.writeConf(name, parsed.toWgQuickString())
-          seedSplit(splitTunnels, name, parsed)
-          imported += name
           entryIndex += 1
-          totalBytes += conf.length
+          if (entry.isDirectory) {
+            continue
+          }
+          val name = ConfigZipNames.tunnelNameFromPath(entry.name) ?: return null
+          val bytes = readLimited(zip, ConfigZipLimits.MAX_ENTRY_BYTES) ?: return null
+          totalBytes += bytes.size
+          if (!ConfigZipLimits.acceptEntry(entryIndex - 1, bytes.size, totalBytes)) {
+            return null
+          }
+          val importedTunnel = importedTunnel(name, bytes) ?: return null
+          if (imported.any { tunnel -> tunnel.name == name }) {
+            return null
+          }
+          imported += importedTunnel
         }
       }
+      ConfigImportBatch(imported.sortedBy { tunnel -> tunnel.name }).takeIf { batch -> batch.tunnels.isNotEmpty() }
     } else {
       val name = ConfigZipNames.tunnelNameFromPath(fallbackName)
         ?: ConfigZipNames.tunnelNameFromPath("$fallbackName.conf")
-        ?: return emptyList()
-      val conf = readLimited(input.reader(StandardCharsets.UTF_8), ConfigZipLimits.MAX_ENTRY_BYTES)
-        ?: return emptyList()
-      if (!ConfigZipLimits.acceptEntry(0, conf.length, conf.length)) {
-        return emptyList()
+        ?: return null
+      val bytes = readLimited(input, ConfigZipLimits.MAX_ENTRY_BYTES) ?: return null
+      if (!ConfigZipLimits.acceptEntry(0, bytes.size, bytes.size)) {
+        return null
       }
-      val parsed = parseOrNull(conf) ?: return emptyList()
-      catalog.writeConf(name, parsed.toWgQuickString())
-      seedSplit(splitTunnels, name, parsed)
-      imported += name
+      importedTunnel(name, bytes)?.let { tunnel -> ConfigImportBatch(listOf(tunnel)) }
     }
-    return imported.distinct().sorted()
   }
 
   fun exportZip(
@@ -108,15 +79,15 @@ object ConfigZipIO {
     }
   }
 
-  private fun seedSplit(splitTunnels: SplitTunnelStore?, name: String, parsed: Config) {
-    if (splitTunnels == null) {
-      return
-    }
+  private fun importedTunnel(name: String, bytes: ByteArray): ImportedTunnel? {
+    val conf = decodeUtf8(bytes) ?: return null
+    val parsed = parseOrNull(conf) ?: return null
     val excluded = parsed.`interface`.excludedApplications
     val included = parsed.`interface`.includedApplications
-    splitTunnels.write(
-      name,
-      StoredSplitTunnel(
+    return ImportedTunnel(
+      name = name,
+      conf = parsed.toWgQuickString(),
+      splitTunnel = StoredSplitTunnel(
         mode = SplitTunnelPolicy.modeFrom(excluded, included),
         packages = excluded + included,
       ),
@@ -127,21 +98,27 @@ object ConfigZipIO {
     return runCatching { Config.parse(conf.byteInputStream()) }.getOrNull()
   }
 
-  private fun readLimited(reader: Reader, maxBytes: Int): String? {
-    val builder = StringBuilder()
-    val buffer = CharArray(1024)
+  private fun readLimited(input: InputStream, maxBytes: Int): ByteArray? {
+    val output = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(4096)
     var total = 0
     while (true) {
-      val count = reader.read(buffer)
-      if (count < 0) {
-        break
-      }
+      val count = input.read(buffer)
+      if (count < 0) break
       total += count
-      if (total > maxBytes) {
-        return null
-      }
-      builder.appendRange(buffer, 0, count)
+      if (total > maxBytes) return null
+      output.write(buffer, 0, count)
     }
-    return builder.toString()
+    return output.toByteArray()
+  }
+
+  private fun decodeUtf8(bytes: ByteArray): String? {
+    return runCatching {
+      StandardCharsets.UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+        .decode(java.nio.ByteBuffer.wrap(bytes))
+        .toString()
+    }.getOrNull()
   }
 }

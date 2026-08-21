@@ -2,6 +2,8 @@ package com.wirepilot.app
 
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.OpenableColumns
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -13,17 +15,24 @@ import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.wirepilot.app.control.HomeController
+import com.wirepilot.app.control.ConfigImportPlanner
+import com.wirepilot.app.data.ConfigImportBatch
 import com.wirepilot.app.data.SplitTunnelMode
 import com.wirepilot.app.control.TunnelRow
+import com.wirepilot.app.platform.ConfigImportCommitter
 import com.wirepilot.app.platform.ConfigSplitMerger
 import com.wirepilot.app.platform.ConfigZipIO
 import com.wirepilot.app.ui.SystemBarInsets
+import java.util.concurrent.Executors
 
 class TunnelsActivity : AppCompatActivity() {
   private lateinit var controller: HomeController
   private lateinit var tunnelList: LinearLayout
   private lateinit var emptyTunnels: TextView
   private lateinit var exportTunnelButton: MaterialButton
+  private val importExecutor = Executors.newSingleThreadExecutor()
+  private val mainHandler = Handler(Looper.getMainLooper())
+  @Volatile private var importAllowed = false
   private val onTunnelSettled = {
     if (!isDestroyed) {
       refreshUi()
@@ -68,6 +77,7 @@ class TunnelsActivity : AppCompatActivity() {
 
   override fun onStart() {
     super.onStart()
+    importAllowed = true
     (application as WirePilotApp).container.tunnel.addSettledListener(onTunnelSettled)
   }
 
@@ -77,6 +87,7 @@ class TunnelsActivity : AppCompatActivity() {
   }
 
   override fun onStop() {
+    importAllowed = false
     (application as WirePilotApp).container.tunnel.removeSettledListener(onTunnelSettled)
     super.onStop()
   }
@@ -182,60 +193,71 @@ class TunnelsActivity : AppCompatActivity() {
     val container = (application as WirePilotApp).container
     val displayName = displayName(uri)
     val isZip = displayName.endsWith(".zip", ignoreCase = true)
-    val names = runCatching {
-      contentResolver.openInputStream(uri)?.use { input ->
-        ConfigZipIO.peekNames(input, isZip, displayName)
-      }.orEmpty()
-    }.getOrDefault(emptyList())
-    if (names.isEmpty()) {
-      Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
-      return
-    }
-    val overlap = names.filter { it in container.catalog.names() }
-    if (overlap.isEmpty()) {
-      writeImported(uri, displayName, isZip)
-      return
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.import_overwrite_title)
-      .setMessage(getString(R.string.import_overwrite_message, overlap.joinToString(", ")))
-      .setPositiveButton(R.string.import_overwrite) { _, _ ->
-        writeImported(uri, displayName, isZip)
+    importExecutor.execute {
+      val batch = runCatching {
+        contentResolver.openInputStream(uri)?.use { input ->
+          ConfigZipIO.readImport(input, isZip, displayName)
+        }
+      }.getOrNull()
+      mainHandler.post {
+        if (isDestroyed || !importAllowed || batch == null) {
+          if (!isDestroyed && importAllowed) Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
+          return@post
+        }
+        val overlap = ConfigImportPlanner.overwriteNames(batch, container.catalog.names())
+        if (overlap.isEmpty()) {
+          writeImported(batch)
+          return@post
+        }
+        AlertDialog.Builder(this)
+          .setTitle(R.string.import_overwrite_title)
+          .setMessage(getString(R.string.import_overwrite_message, overlap.joinToString(", ")))
+          .setPositiveButton(R.string.import_overwrite) { _, _ -> writeImported(batch) }
+          .setNegativeButton(R.string.cancel, null)
+          .show()
       }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
+    }
   }
 
-  private fun writeImported(uri: Uri, displayName: String, isZip: Boolean) {
+  private fun writeImported(batch: ConfigImportBatch) {
     val container = (application as WirePilotApp).container
-    val imported = runCatching {
-      contentResolver.openInputStream(uri)?.use { input ->
-        ConfigZipIO.importAll(input, isZip, displayName, container.catalog, container.splitTunnels)
-      }.orEmpty()
-    }.getOrDefault(emptyList())
-    if (imported.isEmpty()) {
-      Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
-      return
+    importExecutor.execute {
+      val imported = runCatching {
+        ConfigImportCommitter(container.catalog, container.splitTunnels).commit(batch) { importAllowed }
+      }.getOrDefault(emptyList())
+      mainHandler.post {
+        if (isDestroyed || !importAllowed) return@post
+        if (imported.isEmpty()) {
+          Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
+          return@post
+        }
+        controller.reloadImported(imported)
+        Toast.makeText(this, getString(R.string.import_success, imported.size), Toast.LENGTH_SHORT).show()
+        refreshUi()
+      }
     }
-    controller.reloadImported(imported)
-    Toast.makeText(this, getString(R.string.import_success, imported.size), Toast.LENGTH_SHORT).show()
-    refreshUi()
   }
 
   private fun exportTo(uri: Uri) {
     val container = (application as WirePilotApp).container
-    val names = container.catalog.names()
-    val ok = runCatching {
-      val output = contentResolver.openOutputStream(uri) ?: return@runCatching false
-      output.use { stream ->
-        ConfigZipIO.exportZip(stream, container.catalog, names) { name, conf ->
-          val parsed = ConfigZipIO.parseOrNull(conf) ?: return@exportZip conf
-          ConfigSplitMerger.toConf(ConfigSplitMerger.merge(parsed, container.splitTunnels.read(name)))
+    importExecutor.execute {
+      val ok = runCatching {
+        val names = container.catalog.names()
+        val output = contentResolver.openOutputStream(uri) ?: return@runCatching false
+        output.use { stream ->
+          ConfigZipIO.exportZip(stream, container.catalog, names) { name, conf ->
+            val parsed = ConfigZipIO.parseOrNull(conf) ?: return@exportZip conf
+            ConfigSplitMerger.toConf(ConfigSplitMerger.merge(parsed, container.splitTunnels.read(name)))
+          }
+        }
+        true
+      }.getOrDefault(false)
+      mainHandler.post {
+        if (!isDestroyed && importAllowed) {
+          Toast.makeText(this, if (ok) R.string.export_success else R.string.export_failed, Toast.LENGTH_SHORT).show()
         }
       }
-      true
-    }.getOrDefault(false)
-    Toast.makeText(this, if (ok) R.string.export_success else R.string.export_failed, Toast.LENGTH_SHORT).show()
+    }
   }
 
   private fun displayName(uri: Uri): String {

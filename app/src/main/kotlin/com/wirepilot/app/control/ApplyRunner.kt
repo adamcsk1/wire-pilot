@@ -41,10 +41,7 @@ class ApplyRunner(
     when (decision) {
       is PolicyDecision.Skip -> Unit
       is PolicyDecision.Apply -> {
-        tunnel.send(decision.tunnelName, decision.command)
-        if (decision.command == TunnelCommand.DOWN) {
-          downCompanion(resolved, decision.tunnelName)
-        }
+        tunnel.send(commandsFor(decision, resolved))
       }
     }
   }
@@ -57,13 +54,17 @@ class ApplyRunner(
     tunnel.send(tunnelName, command)
   }
 
-  private fun downCompanion(control: StoredControl, alreadyDown: String) {
+  private fun commandsFor(decision: PolicyDecision.Apply, control: StoredControl): List<Pair<String, TunnelCommand>> {
+    val commands = mutableListOf(decision.tunnelName to decision.command)
+    if (decision.command != TunnelCommand.DOWN) return commands
+    val alreadyDown = decision.tunnelName
     val other = when (alreadyDown) {
       control.tunnelName -> control.mobileTunnelName
       else -> control.tunnelName
     }.trim()
     if (other.isNotBlank() && other != alreadyDown) {
-      tunnel.send(other, TunnelCommand.DOWN)
+      commands += other to TunnelCommand.DOWN
     }
+    return commands
   }
 }

@@ -42,13 +42,25 @@ class GoTunnelController(
     settledListeners.remove(listener)
   }
 
+  @Synchronized
   override fun send(tunnelName: String, command: TunnelCommand) {
-    if (tunnelName.isBlank()) {
-      return
-    }
+    send(listOf(tunnelName to command))
+  }
+
+  @Synchronized
+  override fun send(commands: List<Pair<String, TunnelCommand>>) {
+    val validCommands = commands.filter { (tunnelName, _) -> tunnelName.isNotBlank() }
+    if (validCommands.isEmpty()) return
     val generation = nextGeneration.incrementAndGet()
-    pending[tunnelName] = PendingCommand(generation, command == TunnelCommand.UP)
-    executor.execute { apply(tunnelName, command, generation) }
+    pending.forEach { (tunnelName, pendingCommand) ->
+      if (pendingCommand.generation < generation) {
+        pending.remove(tunnelName, pendingCommand)
+      }
+    }
+    validCommands.forEach { (tunnelName, command) ->
+      pending[tunnelName] = PendingCommand(generation, command == TunnelCommand.UP)
+    }
+    executor.execute { apply(validCommands, generation) }
   }
 
   override fun isUp(tunnelName: String): Boolean {
@@ -69,16 +81,20 @@ class GoTunnelController(
     return TunnelTraffic(rxBytes = stats.totalRx(), txBytes = stats.totalTx())
   }
 
-  private fun apply(tunnelName: String, command: TunnelCommand, generation: Long) {
+  private fun apply(commands: List<Pair<String, TunnelCommand>>, generation: Long) {
     try {
-      applyCommand(tunnelName, command, generation)
+      commands.forEach { (tunnelName, command) ->
+        if (isCurrent(generation)) applyCommand(tunnelName, command, generation)
+      }
     } finally {
       notifySettled()
     }
   }
 
   private fun applyCommand(tunnelName: String, command: TunnelCommand, generation: Long) {
+    if (!isCurrent(generation)) return
     val stored = catalog.readConf(tunnelName)
+    if (!isCurrent(generation)) return
     if (stored == null) {
       if (command == TunnelCommand.DOWN) {
         downMissingConf(tunnelName, generation)
@@ -89,6 +105,7 @@ class GoTunnelController(
       return
     }
     val parsed = ConfigZipIO.parseOrNull(stored)
+    if (!isCurrent(generation)) return
     if (parsed == null) {
       clearPendingIfCurrent(tunnelName, generation)
       log.record(LogKind.TUNNEL_ERROR, "bad-conf tunnel=$tunnelName")
@@ -99,7 +116,9 @@ class GoTunnelController(
     val desired = if (command == TunnelCommand.UP) Tunnel.State.UP else Tunnel.State.DOWN
     val actual = runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN)
     val confDigest = digest(ConfigSplitMerger.toConf(merged))
-    downOtherTunnels(keepName = if (command == TunnelCommand.UP) tunnelName else null)
+    if (!isCurrent(generation)) return
+    downOtherTunnels(keepName = if (command == TunnelCommand.UP) tunnelName else null, generation)
+    if (!isCurrent(generation)) return
     if (desired == Tunnel.State.DOWN && actual == Tunnel.State.DOWN) {
       clearPendingIfCurrent(tunnelName, generation)
       return
@@ -109,8 +128,10 @@ class GoTunnelController(
       return
     }
     val config = if (command == TunnelCommand.UP) merged else null
+    if (!isCurrent(generation)) return
     runCatching { backend.setState(tunnel, desired, config) }
       .onSuccess { state ->
+        if (!isCurrent(generation)) return@onSuccess
         if (state == Tunnel.State.UP) {
           lastUpConfDigest[tunnelName] = confDigest
         } else {
@@ -120,12 +141,14 @@ class GoTunnelController(
         log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
       }
       .onFailure { error ->
+        if (!isCurrent(generation)) return@onFailure
         clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$tunnelName")
       }
   }
 
   private fun downMissingConf(tunnelName: String, generation: Long) {
+    if (!isCurrent(generation)) return
     val tunnel = tunnels[tunnelName]
     if (tunnel == null) {
       lastUpConfDigest.remove(tunnelName)
@@ -133,25 +156,30 @@ class GoTunnelController(
       return
     }
     val actual = runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN)
+    if (!isCurrent(generation)) return
     if (actual == Tunnel.State.DOWN) {
       lastUpConfDigest.remove(tunnelName)
       clearPendingIfCurrent(tunnelName, generation)
       return
     }
+    if (!isCurrent(generation)) return
     runCatching { backend.setState(tunnel, Tunnel.State.DOWN, null) }
       .onSuccess { state ->
+        if (!isCurrent(generation)) return@onSuccess
         lastUpConfDigest.remove(tunnelName)
         clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
       }
       .onFailure { error ->
+        if (!isCurrent(generation)) return@onFailure
         clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$tunnelName")
       }
   }
 
-  private fun downOtherTunnels(keepName: String?) {
+  private fun downOtherTunnels(keepName: String?, generation: Long) {
     tunnels.forEach { (name, other) ->
+      if (!isCurrent(generation)) return
       if (keepName != null && name == keepName) {
         return@forEach
       }
@@ -159,12 +187,15 @@ class GoTunnelController(
       if (state != Tunnel.State.UP) {
         return@forEach
       }
+      if (!isCurrent(generation)) return
       runCatching { backend.setState(other, Tunnel.State.DOWN, null) }
         .onSuccess {
+          if (!isCurrent(generation)) return@onSuccess
           lastUpConfDigest.remove(name)
           log.record(LogKind.TUNNEL, "state=DOWN tunnel=$name")
         }
         .onFailure { error ->
+          if (!isCurrent(generation)) return@onFailure
           log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$name")
         }
     }
@@ -175,6 +206,8 @@ class GoTunnelController(
       if (current.generation == generation) null else current
     }
   }
+
+  private fun isCurrent(generation: Long): Boolean = nextGeneration.get() == generation
 
   private fun namedTunnel(tunnelName: String): NamedTunnel {
     return NamedTunnel(tunnelName) { state -> onExternalState(tunnelName, state) }

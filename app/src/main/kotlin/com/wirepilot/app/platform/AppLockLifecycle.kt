@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.WindowManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -14,6 +15,7 @@ import com.wirepilot.app.control.AppLockSession
 
 class AppLockLifecycle(
   private val session: AppLockSession,
+  private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() },
 ) : Application.ActivityLifecycleCallbacks, DefaultLifecycleObserver {
   private var backgroundedAtMillis: Long? = null
 
@@ -26,14 +28,14 @@ class AppLockLifecycle(
     val leftAt = backgroundedAtMillis
     backgroundedAtMillis = null
     if (leftAt != null &&
-      AppLockPolicy.shouldLockAfterBackground(System.currentTimeMillis() - leftAt)
+      AppLockPolicy.shouldLockAfterBackground(elapsedRealtime() - leftAt)
     ) {
       session.lock()
     }
   }
 
   override fun onStop(owner: LifecycleOwner) {
-    backgroundedAtMillis = System.currentTimeMillis()
+    backgroundedAtMillis = elapsedRealtime()
   }
 
   override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {

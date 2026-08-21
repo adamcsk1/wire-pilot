@@ -60,6 +60,33 @@ class ApplyRunnerTest {
   }
 
   @Test
+  fun sendsCompanionDownAsOneBatch() {
+    val batches = mutableListOf<List<Pair<String, TunnelCommand>>>()
+    val tunnel = object : TunnelCommands {
+      override fun send(tunnelName: String, command: TunnelCommand) {
+        error("expected batch send")
+      }
+
+      override fun send(commands: List<Pair<String, TunnelCommand>>) {
+        batches += commands
+      }
+    }
+    ApplyRunner(
+      store = InMemoryControlStore(
+        StoredControl(enabled = false, tunnelName = "office", mobileTunnelName = "travel"),
+      ),
+      clock = { 10L },
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      tunnel = tunnel,
+    ).applyNow()
+
+    assertEquals(
+      listOf(listOf("office" to TunnelCommand.DOWN, "travel" to TunnelCommand.DOWN)),
+      batches,
+    )
+  }
+
+  @Test
   fun sendsDownOnExcludedSsid() {
     val store = InMemoryControlStore(
       StoredControl(tunnelName = "office", excludedSsids = setOf("Home")),
