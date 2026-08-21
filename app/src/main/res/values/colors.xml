@@ -2,18 +2,18 @@
   <color name="ink">#0E1A24</color>
   <color name="copper">#D9772C</color>
   <color name="seafoam">#2A9D8F</color>
-  <color name="paper">#F4EFE6</color>
-  <color name="surface">#F4EFE6</color>
-  <color name="surface_card">#FFF8EE</color>
+  <color name="paper">#E8EEF0</color>
+  <color name="surface">#E8EEF0</color>
+  <color name="surface_card">#F5F8F9</color>
   <color name="on_surface">#0E1A24</color>
   <color name="on_surface_muted">#5C6670</color>
   <color name="primary">#D9772C</color>
-  <color name="on_primary">#F4EFE6</color>
-  <color name="primary_container">#F3D4B3</color>
+  <color name="on_primary">#F5F8F9</color>
+  <color name="primary_container">#E2CDB8</color>
   <color name="on_primary_container">#0E1A24</color>
   <color name="secondary">#2A9D8F</color>
-  <color name="on_secondary">#F4EFE6</color>
+  <color name="on_secondary">#F5F8F9</color>
   <color name="secondary_container">#CDE8E3</color>
   <color name="on_secondary_container">#0E1A24</color>
-  <color name="outline">#C9BBA8</color>
+  <color name="outline">#B8C4C8</color>
 </resources>

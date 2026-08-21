@@ -17,4 +17,5 @@ data class HomeViewState(
   val logCopyText: String,
   val connectOnMobile: Boolean,
   val controlSelection: ControlSelection,
+  val vpnConnected: Boolean = false,
 )

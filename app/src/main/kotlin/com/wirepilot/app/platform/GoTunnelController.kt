@@ -7,37 +7,70 @@ import com.wirepilot.app.control.LogKind
 import com.wirepilot.app.control.NoOpDiagnosticLog
 import com.wirepilot.app.control.TunnelCommand
 import com.wirepilot.app.control.TunnelCommands
+import com.wirepilot.app.control.TunnelStatePort
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.TunnelCatalog
+import android.os.Handler
+import android.os.Looper
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
 class GoTunnelController(
   private val backend: GoBackend,
   private val catalog: TunnelCatalog,
   private val splitTunnels: SplitTunnelStore,
   private val log: DiagnosticLog = NoOpDiagnosticLog,
-) : TunnelCommands {
+) : TunnelCommands, TunnelStatePort {
   private val tunnels = ConcurrentHashMap<String, NamedTunnel>()
   private val lastUpConfDigest = ConcurrentHashMap<String, String>()
+  private val pending = ConcurrentHashMap<String, PendingCommand>()
+  private val nextGeneration = AtomicLong(0)
   private val executor = Executors.newSingleThreadExecutor()
+  private val mainHandler = Handler(Looper.getMainLooper())
+  @Volatile private var settledListener: (() -> Unit)? = null
+
+  fun setSettledListener(listener: (() -> Unit)?) {
+    settledListener = listener
+  }
 
   override fun send(tunnelName: String, command: TunnelCommand) {
     if (tunnelName.isBlank()) {
       return
     }
-    executor.execute { apply(tunnelName, command) }
+    val generation = nextGeneration.incrementAndGet()
+    pending[tunnelName] = PendingCommand(generation, command == TunnelCommand.UP)
+    executor.execute { apply(tunnelName, command, generation) }
   }
 
-  private fun apply(tunnelName: String, command: TunnelCommand) {
+  override fun isUp(tunnelName: String): Boolean {
+    if (tunnelName.isBlank()) {
+      return false
+    }
+    pending[tunnelName]?.let { return it.wantUp }
+    val tunnel = tunnels.getOrPut(tunnelName) { NamedTunnel(tunnelName) }
+    return runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN) == Tunnel.State.UP
+  }
+
+  private fun apply(tunnelName: String, command: TunnelCommand, generation: Long) {
+    try {
+      applyCommand(tunnelName, command, generation)
+    } finally {
+      notifySettled()
+    }
+  }
+
+  private fun applyCommand(tunnelName: String, command: TunnelCommand, generation: Long) {
     val stored = catalog.readConf(tunnelName)
     if (stored == null) {
+      clearPendingIfCurrent(tunnelName, generation)
       log.record(LogKind.TUNNEL_ERROR, "missing-conf tunnel=$tunnelName")
       return
     }
     val parsed = ConfigZipIO.parseOrNull(stored)
     if (parsed == null) {
+      clearPendingIfCurrent(tunnelName, generation)
       log.record(LogKind.TUNNEL_ERROR, "bad-conf tunnel=$tunnelName")
       return
     }
@@ -48,9 +81,11 @@ class GoTunnelController(
     val confDigest = digest(ConfigSplitMerger.toConf(merged))
     downOtherTunnels(keepName = if (command == TunnelCommand.UP) tunnelName else null)
     if (desired == Tunnel.State.DOWN && actual == Tunnel.State.DOWN) {
+      clearPendingIfCurrent(tunnelName, generation)
       return
     }
     if (desired == Tunnel.State.UP && actual == Tunnel.State.UP && lastUpConfDigest[tunnelName] == confDigest) {
+      clearPendingIfCurrent(tunnelName, generation)
       return
     }
     val config = if (command == TunnelCommand.UP) merged else null
@@ -61,9 +96,11 @@ class GoTunnelController(
         } else {
           lastUpConfDigest.remove(tunnelName)
         }
+        clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
       }
       .onFailure { error ->
+        clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$tunnelName")
       }
   }
@@ -88,11 +125,27 @@ class GoTunnelController(
     }
   }
 
+  private fun clearPendingIfCurrent(tunnelName: String, generation: Long) {
+    pending.computeIfPresent(tunnelName) { _, current ->
+      if (current.generation == generation) null else current
+    }
+  }
+
+  private fun notifySettled() {
+    val listener = settledListener ?: return
+    mainHandler.post(listener)
+  }
+
   private fun digest(confText: String): String {
     val bytes = MessageDigest.getInstance("SHA-256").digest(confText.toByteArray(Charsets.UTF_8))
     return bytes.joinToString("") { byte -> "%02x".format(byte) }
   }
 }
+
+private data class PendingCommand(
+  val generation: Long,
+  val wantUp: Boolean,
+)
 
 class NamedTunnel(
   private val tunnelName: String,

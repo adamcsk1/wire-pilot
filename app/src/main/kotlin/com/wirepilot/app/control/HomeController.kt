@@ -21,6 +21,7 @@ class HomeController(
   private val watching: WatchingServicePort = NoOpWatchingService,
   private val catalog: TunnelCatalog = EmptyTunnelCatalog,
   private val splitTunnels: SplitTunnelStore = EmptySplitTunnelStore,
+  private val tunnelState: TunnelStatePort = NoOpTunnelState,
 ) {
   fun viewState(): HomeViewState {
     val resolved = persistResolved()
@@ -48,6 +49,7 @@ class HomeController(
       ).filter { it.isNotBlank() }.joinToString("\n"),
       connectOnMobile = resolved.connectOnMobile,
       controlSelection = ControlSelectionPresenter.present(status),
+      vpnConnected = resolved.tunnelName.isNotBlank() && tunnelState.isUp(resolved.tunnelName),
     )
   }
 

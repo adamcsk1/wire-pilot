@@ -23,6 +23,7 @@ class HomeControllerTest {
     network: NetworkSnapshot = NetworkSnapshot(NetworkKind.MOBILE),
     log: DiagnosticLog = NoOpDiagnosticLog,
     watching: WatchingServicePort = NoOpWatchingService,
+    tunnelState: TunnelStatePort = NoOpTunnelState,
   ): Triple<HomeController, InMemoryControlStore, RecordingPauseAlarm> {
     val store = InMemoryControlStore(initial)
     val alarms = RecordingPauseAlarm()
@@ -36,6 +37,7 @@ class HomeControllerTest {
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
       watching = watching,
+      tunnelState = tunnelState,
     )
     return Triple(home, store, alarms)
   }
@@ -346,5 +348,29 @@ class HomeControllerTest {
     assertEquals(true, watching.values.last())
     home.disableControlForever()
     assertEquals(false, watching.values.last())
+  }
+
+  @Test
+  fun vpnConnectedFollowsTunnelState() {
+    val (home) = controller(
+      StoredControl(tunnelName = "office"),
+      tunnelState = TunnelStatePort { name -> name == "office" },
+    )
+    assertTrue(home.viewState().vpnConnected)
+  }
+
+  @Test
+  fun vpnConnectedFalseWhenTunnelBlank() {
+    val (home) = controller(
+      StoredControl(tunnelName = ""),
+      tunnelState = TunnelStatePort { true },
+    )
+    assertFalse(home.viewState().vpnConnected)
+  }
+
+  @Test
+  fun vpnConnectedFalseWhenTunnelDown() {
+    val (home) = controller(StoredControl(tunnelName = "office"))
+    assertFalse(home.viewState().vpnConnected)
   }
 }

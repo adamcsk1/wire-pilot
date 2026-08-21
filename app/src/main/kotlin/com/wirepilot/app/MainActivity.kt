@@ -52,16 +52,15 @@ class MainActivity : AppCompatActivity() {
   private lateinit var addCurrentButton: MaterialButton
   private lateinit var addSsidButton: MaterialButton
   private lateinit var connectOnMobileSwitch: MaterialSwitch
-  private lateinit var enableButton: MaterialButton
+  private lateinit var controlSwitch: MaterialSwitch
   private lateinit var pauseButton: MaterialButton
-  private lateinit var disableButton: MaterialButton
+  private lateinit var vpnSwitch: MaterialSwitch
   private lateinit var applyNowButton: MaterialButton
   private lateinit var applyNowDetail: TextView
   private lateinit var manualVpnHint: TextView
-  private lateinit var manualVpnRow: LinearLayout
-  private lateinit var connectVpnButton: MaterialButton
-  private lateinit var disconnectVpnButton: MaterialButton
   private var suppressMobileSwitch = false
+  private var suppressControlSwitch = false
+  private var suppressVpnSwitch = false
   private var pendingAfterVpnPrepare = "apply"
 
   private val permissionLauncher = registerForActivityResult(
@@ -90,8 +89,8 @@ class MainActivity : AppCompatActivity() {
   private val vpnPrepareLauncher = registerForActivityResult(
     ActivityResultContracts.StartActivityForResult(),
   ) {
-    refreshUi()
     if (VpnService.prepare(this) != null) {
+      refreshUi()
       return@registerForActivityResult
     }
     if (pendingAfterVpnPrepare == "connect") {
@@ -116,10 +115,24 @@ class MainActivity : AppCompatActivity() {
     refreshUi()
   }
 
+  override fun onStart() {
+    super.onStart()
+    (application as WirePilotApp).container.tunnel.setSettledListener {
+      if (!isDestroyed) {
+        refreshUi()
+      }
+    }
+  }
+
   override fun onResume() {
     super.onResume()
     startWatchingIfNeeded()
     refreshUi()
+  }
+
+  override fun onStop() {
+    (application as WirePilotApp).container.tunnel.setSettledListener(null)
+    super.onStop()
   }
 
   override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -155,15 +168,12 @@ class MainActivity : AppCompatActivity() {
     addCurrentButton = findViewById(R.id.addCurrentButton)
     addSsidButton = findViewById(R.id.addSsidButton)
     connectOnMobileSwitch = findViewById(R.id.connectOnMobileSwitch)
-    enableButton = findViewById(R.id.enableButton)
+    controlSwitch = findViewById(R.id.controlSwitch)
     pauseButton = findViewById(R.id.pauseButton)
-    disableButton = findViewById(R.id.disableButton)
+    vpnSwitch = findViewById(R.id.vpnSwitch)
     applyNowButton = findViewById(R.id.applyNowButton)
     applyNowDetail = findViewById(R.id.applyNowDetail)
     manualVpnHint = findViewById(R.id.manualVpnHint)
-    manualVpnRow = findViewById(R.id.manualVpnRow)
-    connectVpnButton = findViewById(R.id.connectVpnButton)
-    disconnectVpnButton = findViewById(R.id.disconnectVpnButton)
   }
 
   private fun bindActions() {
@@ -182,27 +192,36 @@ class MainActivity : AppCompatActivity() {
       controller.setConnectOnMobile(checked)
       refreshUi()
     }
-    enableButton.setOnClickListener {
-      controller.enableControl()
-      startWatchingIfNeeded()
-      applyWithVpnConsent()
-    }
-    disableButton.setOnClickListener {
-      controller.disableControlForever()
-      refreshUi()
-    }
-    pauseButton.setOnClickListener { showPauseMenu() }
-    applyNowButton.setOnClickListener { applyWithVpnConsent() }
-    connectVpnButton.setOnClickListener {
-      pendingAfterVpnPrepare = "connect"
-      if (ensureVpnPrepared()) {
-        controller.connectManually()
+    controlSwitch.setOnCheckedChangeListener { _, checked ->
+      if (suppressControlSwitch) {
+        return@setOnCheckedChangeListener
+      }
+      if (checked) {
+        controller.enableControl()
+        startWatchingIfNeeded()
+        refreshUi()
+        applyWithVpnConsent()
+      } else {
+        controller.disableControlForever()
         refreshUi()
       }
     }
-    disconnectVpnButton.setOnClickListener {
-      controller.disconnectManually()
-      refreshUi()
+    pauseButton.setOnClickListener { showPauseMenu() }
+    applyNowButton.setOnClickListener { applyWithVpnConsent() }
+    vpnSwitch.setOnCheckedChangeListener { _, checked ->
+      if (suppressVpnSwitch) {
+        return@setOnCheckedChangeListener
+      }
+      if (checked) {
+        pendingAfterVpnPrepare = "connect"
+        if (ensureVpnPrepared()) {
+          controller.connectManually()
+          refreshUi()
+        }
+      } else {
+        controller.disconnectManually()
+        refreshUi()
+      }
     }
   }
 
@@ -217,14 +236,12 @@ class MainActivity : AppCompatActivity() {
     exportTunnelButton.isEnabled = state.importedTunnels.isNotEmpty()
     splitTunnelButton.isEnabled = state.tunnelName.isNotBlank()
     bindStatus(state.status)
-    bindControlButtons(state.controlSelection)
+    bindControlSwitch(state.controlSelection)
     bindConnectOnMobile(state.connectOnMobile)
+    bindVpnSwitch(state)
     bindApplyNow(state)
     bindSsids(state.excludedSsids)
     bindSsidAction(state)
-    val manual = state.controlSelection != ControlSelection.ON
-    manualVpnHint.isVisible = manual
-    manualVpnRow.isVisible = manual
   }
 
   private fun bindStatus(status: StatusPresentation) {
@@ -268,16 +285,21 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-  private fun bindControlButtons(selection: ControlSelection) {
-    styleControlButton(enableButton, selected = selection == ControlSelection.ON)
-    styleControlButton(pauseButton, selected = selection == ControlSelection.PAUSE)
-    styleControlButton(disableButton, selected = selection == ControlSelection.OFF)
+  private fun bindControlSwitch(selection: ControlSelection) {
+    val armed = selection != ControlSelection.OFF
+    suppressControlSwitch = true
+    controlSwitch.isChecked = armed
+    suppressControlSwitch = false
+    pauseButton.isVisible = armed
   }
 
-  private fun styleControlButton(button: MaterialButton, selected: Boolean) {
-    button.isCheckable = true
-    button.isChecked = selected
-    button.isEnabled = !selected
+  private fun bindVpnSwitch(state: HomeViewState) {
+    val manual = state.controlSelection != ControlSelection.ON
+    suppressVpnSwitch = true
+    vpnSwitch.isChecked = state.vpnConnected
+    vpnSwitch.isEnabled = manual
+    suppressVpnSwitch = false
+    manualVpnHint.isVisible = manual
   }
 
   private fun bindConnectOnMobile(enabled: Boolean) {
@@ -391,14 +413,7 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun showPauseMenu() {
-    val items = arrayOf(
-      getString(R.string.pause_1h),
-      getString(R.string.pause_2h),
-      getString(R.string.pause_4h),
-      getString(R.string.pause_8h),
-      getString(R.string.pause_12h),
-      getString(R.string.pause_24h),
-    )
+    val paused = controller.viewState().controlSelection == ControlSelection.PAUSE
     val options = arrayOf(
       PauseOption.HOURS_1,
       PauseOption.HOURS_2,
@@ -407,11 +422,32 @@ class MainActivity : AppCompatActivity() {
       PauseOption.HOURS_12,
       PauseOption.HOURS_24,
     )
+    val durationLabels = arrayOf(
+      getString(R.string.pause_1h),
+      getString(R.string.pause_2h),
+      getString(R.string.pause_4h),
+      getString(R.string.pause_8h),
+      getString(R.string.pause_12h),
+      getString(R.string.pause_24h),
+    )
+    val items = if (paused) {
+      arrayOf(getString(R.string.pause_resume)) + durationLabels
+    } else {
+      durationLabels
+    }
     AlertDialog.Builder(this)
       .setTitle(R.string.pause_title)
       .setItems(items) { _, which ->
-        controller.pauseFor(options[which])
-        refreshUi()
+        if (paused && which == 0) {
+          controller.enableControl()
+          startWatchingIfNeeded()
+          refreshUi()
+          applyWithVpnConsent()
+        } else {
+          val optionIndex = if (paused) which - 1 else which
+          controller.pauseFor(options[optionIndex])
+          refreshUi()
+        }
       }
       .show()
   }

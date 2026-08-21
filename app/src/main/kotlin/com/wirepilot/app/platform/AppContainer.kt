@@ -51,11 +51,12 @@ class AppContainer(
   val logger: DiagnosticLog = DiagnosticLog { kind, detail ->
     diagnosticLogger.record(kind, detail)
   }
+  val tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger)
   val applyRunner = ApplyRunner(
     store = store,
     clock = { System.currentTimeMillis() },
     network = { ssidReader.snapshot() },
-    tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger),
+    tunnel = tunnel,
     log = logger,
   )
   val debouncer = ReceiverDebouncer(
@@ -94,6 +95,7 @@ class AppContainer(
     watching = watching,
     catalog = catalog,
     splitTunnels = splitTunnels,
+    tunnelState = tunnel,
   )
   val pauseRescheduler = PauseRescheduler(
     store = store,

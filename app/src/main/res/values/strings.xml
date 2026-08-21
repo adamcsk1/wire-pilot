@@ -50,6 +50,7 @@
   <string name="control_pause">Pause</string>
   <string name="control_off">Off</string>
   <string name="pause_title">Pause control</string>
+  <string name="pause_resume">Resume now</string>
   <string name="pause_1h">1 hour</string>
   <string name="pause_2h">2 hours</string>
   <string name="pause_4h">4 hours</string>
