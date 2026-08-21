@@ -107,31 +107,31 @@
             android:textSize="12sp" />
         </HorizontalScrollView>
       </androidx.core.widget.NestedScrollView>
+
+      <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+          android:id="@+id/copyLogButton"
+          style="@style/Widget.WirePilot.Button.Outlined"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_marginEnd="6dp"
+          android:layout_weight="1"
+          android:text="@string/copy_log" />
+
+        <com.google.android.material.button.MaterialButton
+          android:id="@+id/clearLogButton"
+          style="@style/Widget.WirePilot.Button.Outlined"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_marginStart="6dp"
+          android:layout_weight="1"
+          android:text="@string/clear_log" />
+      </LinearLayout>
     </LinearLayout>
   </com.google.android.material.card.MaterialCardView>
-
-  <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_margin="20dp"
-    android:orientation="horizontal">
-
-    <com.google.android.material.button.MaterialButton
-      android:id="@+id/copyLogButton"
-      style="@style/Widget.WirePilot.Button.Outlined"
-      android:layout_width="0dp"
-      android:layout_height="wrap_content"
-      android:layout_marginEnd="6dp"
-      android:layout_weight="1"
-      android:text="@string/copy_log" />
-
-    <com.google.android.material.button.MaterialButton
-      android:id="@+id/clearLogButton"
-      style="@style/Widget.WirePilot.Button.Outlined"
-      android:layout_width="0dp"
-      android:layout_height="wrap_content"
-      android:layout_marginStart="6dp"
-      android:layout_weight="1"
-      android:text="@string/clear_log" />
-  </LinearLayout>
 </LinearLayout>
