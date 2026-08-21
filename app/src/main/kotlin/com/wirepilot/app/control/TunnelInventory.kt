@@ -17,18 +17,22 @@ class TunnelInventory(
   private val ssidMigration: () -> Unit,
   private val resolver: ControlResolver,
 ) {
-  fun setTunnelName(name: String) {
+  fun setTunnelName(name: String): Boolean {
     val current = resolver.persistResolved()
     val trimmed = name.trim()
     if (!ConfigZipNames.isValidTunnelName(trimmed) && trimmed.isNotEmpty()) {
-      return
+      return false
+    }
+    if (current.tunnelName == trimmed) {
+      return false
     }
     store.write(current.copy(tunnelName = trimmed))
+    return true
   }
 
-  fun selectImportedTunnel(name: String) {
+  fun selectImportedTunnel(name: String): Boolean {
     if (name !in catalog.names()) {
-      return
+      return false
     }
     val previous = resolver.persistResolved().tunnelName
     setTunnelName(name)
@@ -37,6 +41,7 @@ class TunnelInventory(
     } else if (previous.isNotBlank() && previous != name) {
       applyRunner.force(TunnelCommand.DOWN, "tunnel-switch", previous)
     }
+    return true
   }
 
   fun saveTunnel(name: String, conf: String, previousName: String? = null): TunnelSaveResult {
@@ -91,20 +96,20 @@ class TunnelInventory(
     return TunnelSaveResult.SAVED
   }
 
-  fun reloadImported(imported: List<String>) {
+  fun reloadImported(imported: List<String>): Boolean {
     if (imported.isEmpty()) {
-      return
+      return false
     }
     ssidMigration()
     val current = resolver.persistResolved()
     if (current.tunnelName.isBlank()) {
       assignMobileIfBlank(imported.first())
       selectImportedTunnel(imported.first())
-      return
+      return true
     }
     val importedMobile = current.mobileTunnelName.isNotBlank() && current.mobileTunnelName in imported
     if (current.tunnelName !in imported && !importedMobile) {
-      return
+      return false
     }
     val liveName = if (importedMobile && tunnelState.isUp(current.mobileTunnelName)) {
       current.mobileTunnelName
@@ -112,11 +117,12 @@ class TunnelInventory(
       current.tunnelName
     }
     applySavedTunnel(liveName, "tunnel-import", tunnelState.isUp(liveName))
+    return true
   }
 
-  fun deleteImportedTunnel(name: String) {
+  fun deleteImportedTunnel(name: String): Boolean {
     if (name !in catalog.names()) {
-      return
+      return false
     }
     if (tunnelState.isUp(name)) {
       applyRunner.force(TunnelCommand.DOWN, "tunnel-delete", name)
@@ -134,15 +140,16 @@ class TunnelInventory(
       store.write(clearedMobile)
     }
     if (clearedMobile.tunnelName != name) {
-      return
+      return true
     }
     val remaining = catalog.names()
     if (remaining.isEmpty()) {
       store.write(clearedMobile.copy(tunnelName = "", enabled = false, pausedUntilEpochMillis = null))
       pauseAlarms.cancel()
-      return
+      return true
     }
     selectImportedTunnel(remaining.first())
+    return true
   }
 
   private fun assignMobileIfBlank(name: String) {

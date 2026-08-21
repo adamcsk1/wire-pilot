@@ -13,6 +13,8 @@ import com.wirepilot.app.control.LastKnownSsid
 import com.wirepilot.app.control.LogFormatter
 import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.control.NetworkChangeCoordinator
+import com.wirepilot.app.control.NetworkMonitorCoordinator
+import com.wirepilot.app.control.NetworkMonitorRuntime
 import com.wirepilot.app.control.PauseExpiryCoordinator
 import com.wirepilot.app.control.PauseRescheduler
 import com.wirepilot.app.control.SsidRedactor
@@ -89,6 +91,18 @@ class AppContainer(
     )
     debouncer.scheduleDebouncedApply()
   }
+  private val networkMonitorRuntime = NetworkMonitorRuntime(
+    registerFallbacks = { networkWatcher.registerFallbacks() },
+    unregisterFallbacks = { networkWatcher.unregisterFallbacks() },
+    startService = { runCatching { NetworkMonitorService.start(appContext) } },
+    stopService = { NetworkMonitorService.stop(appContext) },
+    whenTunnelIdle = { action -> tunnel.runWhenIdle(action) },
+  )
+  val networkMonitorCoordinator = NetworkMonitorCoordinator(
+    store = store,
+    clock = { System.currentTimeMillis() },
+    applyMode = { mode, allowServiceStart -> networkMonitorRuntime.apply(mode, allowServiceStart) },
+  )
   private val pauseAlarms = alarms.pausePort()
   val homeController = HomeController(
     store = store,
@@ -104,6 +118,7 @@ class AppContainer(
     tunnelState = tunnel,
     tunnelStats = tunnel,
     ssidMigration = { ExcludedSsidMigration.run(preferences, catalog, excludedSsids) },
+    reconcileNetworkMonitor = { networkMonitorCoordinator.reconcile() },
   )
   val pauseRescheduler = PauseRescheduler(
     store = store,
@@ -111,10 +126,7 @@ class AppContainer(
     pauseAlarms = pauseAlarms,
   )
   val bootCoordinator = BootCoordinator(
-    registerNetworkWatcher = {
-      networkWatcher.register()
-      logger.record(LogKind.NETWORK_CHANGE, "watcher registered")
-    },
+    reconcileNetworkMonitor = { networkMonitorCoordinator.reconcile() },
     reschedulePause = {
       val scheduled = pauseRescheduler.rescheduleIfNeeded()
       if (scheduled) {
@@ -126,10 +138,14 @@ class AppContainer(
   val networkChangeCoordinator = NetworkChangeCoordinator(
     scheduleDebouncedApply = { debouncer.scheduleDebouncedApply() },
   )
-  val pauseExpiryCoordinator = PauseExpiryCoordinator(applyRunner)
+  val pauseExpiryCoordinator = PauseExpiryCoordinator(
+    applyRunner,
+    onApplied = { networkMonitorCoordinator.reconcileWithoutServiceStart() },
+  )
 
-  fun runDebouncedApply(trigger: String) {
+  fun runDebouncedApply(trigger: String, onSettled: () -> Unit = {}): () -> Unit {
     debouncer.clearArmed()
     applyRunner.applyNow(trigger)
+    return tunnel.runWhenIdle(onSettled)
   }
 }

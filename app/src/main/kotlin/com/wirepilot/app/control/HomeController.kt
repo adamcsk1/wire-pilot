@@ -28,6 +28,7 @@ class HomeController(
   private val tunnelState: TunnelStatePort = NoOpTunnelState,
   private val tunnelStats: TunnelStatsPort = NoOpTunnelStats,
   private val ssidMigration: () -> Unit = {},
+  private val reconcileNetworkMonitor: () -> Unit = {},
 ) {
   private val resolver = ControlResolver(store, clock)
   private val inventory = TunnelInventory(
@@ -99,17 +100,37 @@ class HomeController(
     )
   }
 
-  fun setTunnelName(name: String) = inventory.setTunnelName(name)
-
-  fun selectImportedTunnel(name: String) = inventory.selectImportedTunnel(name)
-
-  fun saveTunnel(name: String, conf: String, previousName: String? = null): TunnelSaveResult {
-    return inventory.saveTunnel(name, conf, previousName)
+  fun setTunnelName(name: String) {
+    if (inventory.setTunnelName(name)) {
+      reconcileNetworkMonitor()
+    }
   }
 
-  fun reloadImported(imported: List<String>) = inventory.reloadImported(imported)
+  fun selectImportedTunnel(name: String) {
+    if (inventory.selectImportedTunnel(name)) {
+      reconcileNetworkMonitor()
+    }
+  }
 
-  fun deleteImportedTunnel(name: String) = inventory.deleteImportedTunnel(name)
+  fun saveTunnel(name: String, conf: String, previousName: String? = null): TunnelSaveResult {
+    val result = inventory.saveTunnel(name, conf, previousName)
+    if (result == TunnelSaveResult.SAVED) {
+      reconcileNetworkMonitor()
+    }
+    return result
+  }
+
+  fun reloadImported(imported: List<String>) {
+    if (inventory.reloadImported(imported)) {
+      reconcileNetworkMonitor()
+    }
+  }
+
+  fun deleteImportedTunnel(name: String) {
+    if (inventory.deleteImportedTunnel(name)) {
+      reconcileNetworkMonitor()
+    }
+  }
 
   fun splitSettings(tunnelName: String): StoredSplitTunnel = splitSsids.splitSettings(tunnelName)
 
@@ -131,6 +152,7 @@ class HomeController(
     store.write(PauseCalculator.resume(resolver.persistResolved()))
     pauseAlarms.cancel()
     log.record(LogKind.RESUME, "control on")
+    reconcileNetworkMonitor()
   }
 
   fun disableControlForever() {
@@ -138,6 +160,7 @@ class HomeController(
     pauseAlarms.cancel()
     log.record(LogKind.DISABLE, "always")
     applyRunner.applyNow("disable")
+    reconcileNetworkMonitor()
   }
 
   fun pauseFor(option: PauseOption) {
@@ -151,6 +174,7 @@ class HomeController(
     }
     log.record(LogKind.PAUSE, option.name)
     applyRunner.applyNow("pause")
+    reconcileNetworkMonitor()
   }
 
   fun setConnectOnMobile(enabled: Boolean, tunnelName: String = resolver.persistResolved().tunnelName) {

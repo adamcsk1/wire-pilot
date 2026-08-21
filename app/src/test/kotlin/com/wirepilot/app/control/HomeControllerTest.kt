@@ -27,6 +27,7 @@ class HomeControllerTest {
     network: NetworkSnapshot = NetworkSnapshot(NetworkKind.MOBILE),
     log: DiagnosticLog = NoOpDiagnosticLog,
     tunnelState: TunnelStatePort = NoOpTunnelState,
+    reconcileNetworkMonitor: () -> Unit = {},
   ): Triple<HomeController, InMemoryControlStore, RecordingPauseAlarm> {
     val store = InMemoryControlStore(initial)
     val alarms = RecordingPauseAlarm()
@@ -52,6 +53,7 @@ class HomeControllerTest {
       log = log,
       excludedSsids = ssids,
       tunnelState = tunnelState,
+      reconcileNetworkMonitor = reconcileNetworkMonitor,
     )
     return Triple(home, store, alarms)
   }
@@ -141,16 +143,32 @@ class HomeControllerTest {
 
   @Test
   fun setTunnelNameTrims() {
-    val (home, store) = controller()
+    var monitorReconciles = 0
+    val (home, store) = controller(reconcileNetworkMonitor = { monitorReconciles += 1 })
     home.setTunnelName("  office-vpn  ")
     assertEquals("office-vpn", store.read().tunnelName)
+    assertEquals(1, monitorReconciles)
+  }
+
+  @Test
+  fun setSameTunnelNameDoesNotReconcileMonitor() {
+    var monitorReconciles = 0
+    val (home, store) = controller(reconcileNetworkMonitor = { monitorReconciles += 1 })
+    home.setTunnelName(" office ")
+    assertEquals("office", store.read().tunnelName)
+    assertEquals(0, monitorReconciles)
   }
 
   @Test
   fun rejectsInvalidTunnelName() {
-    val (home, store) = controller(StoredControl(tunnelName = "office"))
+    var monitorReconciles = 0
+    val (home, store) = controller(
+      StoredControl(tunnelName = "office"),
+      reconcileNetworkMonitor = { monitorReconciles += 1 },
+    )
     home.setTunnelName("bad/name")
     assertEquals("office", store.read().tunnelName)
+    assertEquals(0, monitorReconciles)
   }
 
   @Test
@@ -158,6 +176,7 @@ class HomeControllerTest {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "[Interface]\n"))
     val log = RecordingLog()
+    var monitorReconciles = 0
     val home = HomeController(
       store = store,
       clock = { now },
@@ -167,12 +186,14 @@ class HomeControllerTest {
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
       catalog = catalog,
+      reconcileNetworkMonitor = { monitorReconciles += 1 },
     )
     home.selectImportedTunnel("missing")
     assertEquals("office", store.read().tunnelName)
     home.selectImportedTunnel("HomeVPN")
     assertEquals("HomeVPN", store.read().tunnelName)
     assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+    assertEquals(1, monitorReconciles)
   }
 
   @Test
@@ -321,6 +342,7 @@ class HomeControllerTest {
     var migrated = 0
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val monitorModes = mutableListOf<NetworkMonitorMode>()
     val home = HomeController(
       store = store,
       clock = { now },
@@ -330,11 +352,14 @@ class HomeControllerTest {
       diagnostics = InMemoryDiagnosticStore(),
       catalog = catalog,
       ssidMigration = { migrated += 1 },
+      reconcileNetworkMonitor = { monitorModes += NetworkMonitorPolicy.mode(store.read(), now) },
     )
     home.reloadImported(emptyList())
     assertEquals(0, migrated)
+    assertTrue(monitorModes.isEmpty())
     home.reloadImported(listOf("office"))
     assertEquals(1, migrated)
+    assertEquals(listOf(NetworkMonitorMode.WATCHING), monitorModes)
   }
 
   @Test
@@ -344,6 +369,7 @@ class HomeControllerTest {
     )
     val alarms = RecordingPauseAlarm()
     val tunnel = RecordingTunnel()
+    val monitorModes = mutableListOf<NetworkMonitorMode>()
     val home = HomeController(
       store = store,
       clock = { now },
@@ -351,12 +377,14 @@ class HomeControllerTest {
       pauseAlarms = alarms,
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
+      reconcileNetworkMonitor = { monitorModes += NetworkMonitorPolicy.mode(store.read(), now) },
     )
     home.enableControl()
     assertEquals(true, store.read().enabled)
     assertEquals(null, store.read().pausedUntilEpochMillis)
     assertEquals(1, alarms.cancelCount)
     assertTrue(tunnel.commands.isEmpty())
+    assertEquals(listOf(NetworkMonitorMode.WATCHING), monitorModes)
   }
 
   @Test
@@ -365,6 +393,7 @@ class HomeControllerTest {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val alarms = RecordingPauseAlarm()
     val tunnel = RecordingTunnel()
+    val monitorModes = mutableListOf<NetworkMonitorMode>()
     val home = HomeController(
       store = store,
       clock = { now },
@@ -373,6 +402,7 @@ class HomeControllerTest {
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
+      reconcileNetworkMonitor = { monitorModes += NetworkMonitorPolicy.mode(store.read(), now) },
     )
     home.disableControlForever()
     assertEquals(false, store.read().enabled)
@@ -381,6 +411,7 @@ class HomeControllerTest {
     assertEquals(LogKind.DISABLE, log.entries.first().first)
     assertEquals("always", log.entries.first().second)
     assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
+    assertEquals(listOf(NetworkMonitorMode.STOPPED), monitorModes)
   }
 
   @Test
@@ -389,6 +420,7 @@ class HomeControllerTest {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val alarms = RecordingPauseAlarm()
     val tunnel = RecordingTunnel()
+    val monitorModes = mutableListOf<NetworkMonitorMode>()
     val home = HomeController(
       store = store,
       clock = { now },
@@ -397,6 +429,7 @@ class HomeControllerTest {
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
+      reconcileNetworkMonitor = { monitorModes += NetworkMonitorPolicy.mode(store.read(), now) },
     )
     home.pauseFor(PauseOption.HOURS_1)
     assertEquals(false, store.read().enabled)
@@ -404,14 +437,23 @@ class HomeControllerTest {
     assertEquals(LogKind.PAUSE, log.entries.first().first)
     assertEquals("HOURS_1", log.entries.first().second)
     assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
+    assertEquals(listOf(NetworkMonitorMode.PAUSED), monitorModes)
   }
 
   @Test
   fun alwaysPauseCancelsAlarm() {
-    val (home, _, alarms) = controller()
+    val monitorModes = mutableListOf<NetworkMonitorMode>()
+    lateinit var store: InMemoryControlStore
+    val result = controller(reconcileNetworkMonitor = {
+      monitorModes += NetworkMonitorPolicy.mode(store.read(), now)
+    })
+    val home = result.first
+    store = result.second
+    val alarms = result.third
     home.pauseFor(PauseOption.ALWAYS)
     assertEquals(null, alarms.scheduledAt)
     assertEquals(1, alarms.cancelCount)
+    assertEquals(listOf(NetworkMonitorMode.STOPPED), monitorModes)
   }
 
   @Test
@@ -649,6 +691,7 @@ class HomeControllerTest {
     val store = InMemoryControlStore(StoredControl(tunnelName = ""))
     val catalog = InMemoryTunnelCatalog()
     val log = RecordingLog()
+    val monitorStates = mutableListOf<StoredControl>()
     val home = HomeController(
       store = store,
       clock = { now },
@@ -658,12 +701,14 @@ class HomeControllerTest {
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
       catalog = catalog,
+      reconcileNetworkMonitor = { monitorStates += store.read() },
     )
     assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "[Interface]"))
     assertEquals("office", store.read().tunnelName)
     assertEquals("office", store.read().mobileTunnelName)
     assertEquals(listOf("office"), catalog.names())
     assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+    assertEquals(listOf(store.read()), monitorStates)
   }
 
   @Test
@@ -694,6 +739,7 @@ class HomeControllerTest {
   fun saveRejectsInvalidNameAndBlankConf() {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    var monitorReconciles = 0
     val home = HomeController(
       store = store,
       clock = { now },
@@ -702,11 +748,13 @@ class HomeControllerTest {
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
       catalog = catalog,
+      reconcileNetworkMonitor = { monitorReconciles += 1 },
     )
     assertEquals(TunnelSaveResult.INVALID_NAME, home.saveTunnel("bad/name", "[Interface]"))
     assertEquals(TunnelSaveResult.INVALID_CONF, home.saveTunnel("home", "  "))
     assertEquals("office", store.read().tunnelName)
     assertEquals(listOf("office"), catalog.names())
+    assertEquals(0, monitorReconciles)
   }
 
   @Test
@@ -1139,6 +1187,7 @@ class HomeControllerTest {
     ssids.write("office", setOf("Home"))
     val tunnel = RecordingTunnel()
     val alarms = RecordingPauseAlarm()
+    val monitorStates = mutableListOf<StoredControl>()
     tunnel.send("office", TunnelCommand.UP)
     val home = HomeController(
       store = store,
@@ -1151,6 +1200,7 @@ class HomeControllerTest {
       splitTunnels = splits,
       excludedSsids = ssids,
       tunnelState = tunnel,
+      reconcileNetworkMonitor = { monitorStates += store.read() },
     )
     home.deleteImportedTunnel("office")
     assertEquals("", store.read().tunnelName)
@@ -1165,6 +1215,7 @@ class HomeControllerTest {
       listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.DOWN),
       tunnel.commands,
     )
+    assertEquals(listOf(store.read()), monitorStates)
   }
 
   @Test
@@ -1192,6 +1243,7 @@ class HomeControllerTest {
   fun deleteOtherLeavesDefault() {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    var monitorReconciles = 0
     val home = HomeController(
       store = store,
       clock = { now },
@@ -1200,11 +1252,13 @@ class HomeControllerTest {
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
       catalog = catalog,
+      reconcileNetworkMonitor = { monitorReconciles += 1 },
     )
     home.deleteImportedTunnel("HomeVPN")
     home.deleteImportedTunnel("missing")
     assertEquals("office", store.read().tunnelName)
     assertEquals(listOf("office"), catalog.names())
+    assertEquals(1, monitorReconciles)
   }
 
   @Test

@@ -68,14 +68,29 @@ class SsidReader(
     )
   }
 
+  @Suppress("DEPRECATION")
   private fun refreshKnownNetworks() {
+    val currentNetworks = runCatching { connectivityManager.allNetworks.toSet() }.getOrNull()
+    if (currentNetworks == null) {
+      inventory.networks().forEach { network -> refresh(network) }
+      return
+    }
+    currentNetworks.forEach { network ->
+      refresh(network)
+    }
     inventory.networks().forEach { network ->
-      val capabilities = connectivityManager.getNetworkCapabilities(network)
-      if (capabilities == null) {
+      if (network !in currentNetworks) {
         inventory.remove(network)
-      } else {
-        inventory.put(network, capabilities)
       }
+    }
+  }
+
+  private fun refresh(network: Network) {
+    val capabilities = connectivityManager.getNetworkCapabilities(network)
+    if (capabilities == null) {
+      inventory.remove(network)
+    } else {
+      inventory.put(network, capabilities)
     }
   }
 

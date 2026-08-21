@@ -1,7 +1,11 @@
 <resources>
   <string name="app_name">WirePilot</string>
   <string name="status_watching">Watching networks</string>
-  <string name="status_watching_detail">Tunnel follows SSID rules. Check runs only after a network change or boot.</string>
+  <string name="status_watching_detail">Tunnel follows SSID rules after network changes and boot.</string>
+  <string name="monitor_notification_title">WirePilot is active</string>
+  <string name="monitor_notification_watching">Monitoring network changes</string>
+  <string name="monitor_channel_name">Network monitoring</string>
+  <string name="monitor_channel_description">Keeps automatic VPN control responsive to network changes</string>
   <string name="status_disabled">Control off</string>
   <string name="status_disabled_detail">The tunnel stays down until you turn control back on.</string>
   <string name="status_paused">Control paused</string>

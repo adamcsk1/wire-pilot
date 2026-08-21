@@ -15,6 +15,8 @@ class NetworkWatcher(
   private val onNetworkChanged: () -> Unit,
 ) {
   private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+  private var fallbacksRegistered = false
+  private var liveRegistered = false
   private val liveCallback = object : ConnectivityManager.NetworkCallback() {
     override fun onAvailable(network: Network) {
       val capabilities = connectivityManager.getNetworkCapabilities(network)
@@ -35,41 +37,47 @@ class NetworkWatcher(
     }
   }
 
-  fun register() {
-    runCatching { connectivityManager.unregisterNetworkCallback(wifiPendingIntent()) }
-    runCatching { connectivityManager.unregisterNetworkCallback(cellularPendingIntent()) }
+  @Synchronized
+  fun registerFallbacks() {
+    if (fallbacksRegistered) {
+      return
+    }
+    runCatching { connectivityManager.unregisterNetworkCallback(openPendingIntent()) }
+    connectivityManager.registerNetworkCallback(openRequest(), openPendingIntent())
+    fallbacksRegistered = true
+  }
+
+  @Synchronized
+  fun unregisterFallbacks() {
+    runCatching { connectivityManager.unregisterNetworkCallback(openPendingIntent()) }
+    fallbacksRegistered = false
+  }
+
+  @Synchronized
+  fun startLive() {
+    if (liveRegistered) {
+      return
+    }
     runCatching { connectivityManager.unregisterNetworkCallback(liveCallback) }
-    connectivityManager.registerNetworkCallback(wifiRequest(), wifiPendingIntent())
-    connectivityManager.registerNetworkCallback(cellularRequest(), cellularPendingIntent())
     connectivityManager.registerNetworkCallback(openRequest(), liveCallback)
+    liveRegistered = true
   }
 
-  private fun wifiRequest(): NetworkRequest {
-    return NetworkRequest.Builder()
-      .clearCapabilities()
-      .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-      .build()
-  }
-
-  private fun cellularRequest(): NetworkRequest {
-    return NetworkRequest.Builder()
-      .clearCapabilities()
-      .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
-      .build()
+  @Synchronized
+  fun stopLive() {
+    runCatching { connectivityManager.unregisterNetworkCallback(liveCallback) }
+    liveRegistered = false
   }
 
   private fun openRequest(): NetworkRequest {
     return NetworkRequest.Builder()
       .clearCapabilities()
+      .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
       .build()
   }
 
-  private fun wifiPendingIntent(): PendingIntent {
-    return pendingIntent(REQUEST_WIFI)
-  }
-
-  private fun cellularPendingIntent(): PendingIntent {
-    return pendingIntent(REQUEST_CELLULAR)
+  private fun openPendingIntent(): PendingIntent {
+    return pendingIntent(REQUEST_OPEN)
   }
 
   private fun pendingIntent(requestCode: Int): PendingIntent {
@@ -82,7 +90,6 @@ class NetworkWatcher(
   }
 
   companion object {
-    private const val REQUEST_WIFI = 21
-    private const val REQUEST_CELLULAR = 22
+    private const val REQUEST_OPEN = 23
   }
 }

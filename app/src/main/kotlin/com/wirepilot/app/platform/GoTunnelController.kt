@@ -10,6 +10,7 @@ import com.wirepilot.app.control.TunnelCommands
 import com.wirepilot.app.control.TunnelStatePort
 import com.wirepilot.app.control.TunnelStatsPort
 import com.wirepilot.app.control.TunnelTraffic
+import com.wirepilot.app.control.TunnelIdleActions
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.TunnelCatalog
 import android.os.Handler
@@ -33,6 +34,12 @@ class GoTunnelController(
   private val executor = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
   private val settledListeners = CopyOnWriteArraySet<() -> Unit>()
+  private val idleActions = TunnelIdleActions(
+    isIdle = { pending.isEmpty() },
+    addSettledListener = { listener -> addSettledListener(listener) },
+    removeSettledListener = { listener -> removeSettledListener(listener) },
+    dispatch = { listener -> mainHandler.post(listener) },
+  )
 
   fun addSettledListener(listener: () -> Unit) {
     settledListeners.add(listener)
@@ -41,6 +48,8 @@ class GoTunnelController(
   fun removeSettledListener(listener: () -> Unit) {
     settledListeners.remove(listener)
   }
+
+  fun runWhenIdle(action: () -> Unit): () -> Unit = idleActions.run(action)
 
   @Synchronized
   override fun send(tunnelName: String, command: TunnelCommand) {

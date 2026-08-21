@@ -13,7 +13,7 @@ You are the primary coding agent for WirePilot — a single-purpose Android VPN 
 - Control the active imported tunnel through `GoBackend.setState`
 - Keep decision logic in `control/` and `data/`
 - Never persist plaintext private keys; never `Log.d` policy, SSID, or probe details
-- No foreground service, polling, or battery-optimization prompt
+- Special-use foreground service only for event-driven network monitoring while control is enabled or timed-paused; no polling or battery-optimization prompt
 - Network change and boot debounce is 3 seconds
 - Last-known SSID TTL is 60 seconds
 - Pause expiry applies immediately

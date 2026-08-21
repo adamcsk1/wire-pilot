@@ -10,17 +10,13 @@ import kotlin.test.assertTrue
 class CoordinatorTest {
   @Test
   fun bootRegistersAndSchedulesDebounce() {
-    var registered = false
-    var rescheduled = false
-    var scheduled = false
+    val events = mutableListOf<String>()
     BootCoordinator(
-      registerNetworkWatcher = { registered = true },
-      reschedulePause = { rescheduled = true },
-      scheduleDebouncedApply = { scheduled = true },
+      reconcileNetworkMonitor = { events += "reconcile" },
+      reschedulePause = { events += "reschedule" },
+      scheduleDebouncedApply = { events += "schedule" },
     ).onBootOrUpdate()
-    assertTrue(registered)
-    assertTrue(rescheduled)
-    assertTrue(scheduled)
+    assertEquals(listOf("reconcile", "reschedule", "schedule"), events)
   }
 
   @Test
@@ -42,8 +38,10 @@ class CoordinatorTest {
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       tunnel = tunnel,
     )
-    PauseExpiryCoordinator(runner).onPauseExpired()
+    var enabledWhenReconciled = false
+    PauseExpiryCoordinator(runner, onApplied = { enabledWhenReconciled = store.read().enabled }).onPauseExpired()
     assertEquals(listOf("office" to TunnelCommand.UP), tunnel.commands)
     assertEquals(true, store.read().enabled)
+    assertTrue(enabledWhenReconciled)
   }
 }

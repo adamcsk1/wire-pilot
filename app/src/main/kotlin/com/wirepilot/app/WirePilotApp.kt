@@ -2,7 +2,6 @@ package com.wirepilot.app
 
 import android.app.Application
 import com.wireguard.android.backend.GoBackend
-import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.platform.AppContainer
 import com.wirepilot.app.platform.AppLockLifecycle
 import com.wirepilot.app.platform.AppCompatThemeMode
@@ -19,8 +18,6 @@ class WirePilotApp : Application() {
     GoBackend.setAlwaysOnCallback {
       container.applyRunner.applyNow("always-on")
     }
-    container.networkWatcher.register()
-    container.logger.record(LogKind.NETWORK_CHANGE, "watcher registered")
     container.debouncer.scheduleProcessStartApply()
   }
 }

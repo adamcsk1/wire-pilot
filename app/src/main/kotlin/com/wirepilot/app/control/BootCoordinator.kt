@@ -1,12 +1,12 @@
 package com.wirepilot.app.control
 
 class BootCoordinator(
-  private val registerNetworkWatcher: () -> Unit,
+  private val reconcileNetworkMonitor: () -> Unit,
   private val reschedulePause: () -> Unit,
   private val scheduleDebouncedApply: () -> Unit,
 ) {
   fun onBootOrUpdate() {
-    registerNetworkWatcher()
+    reconcileNetworkMonitor()
     reschedulePause()
     scheduleDebouncedApply()
   }

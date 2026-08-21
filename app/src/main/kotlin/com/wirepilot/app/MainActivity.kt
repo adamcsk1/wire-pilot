@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity() {
     setContentView(R.layout.activity_main)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     controller = (application as WirePilotApp).container.homeController
+    (application as WirePilotApp).container.networkMonitorCoordinator.reconcile()
     bindViews()
     setSupportActionBar(toolbar)
     supportActionBar?.setDisplayShowTitleEnabled(true)
@@ -323,6 +324,9 @@ class MainActivity : AppCompatActivity() {
       if (!AppPermissions.fineLocationGranted(this@MainActivity)) {
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
+      }
+      if (!AppPermissions.granted(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS)) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
     if (missing.isNotEmpty()) {
