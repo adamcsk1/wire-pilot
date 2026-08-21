@@ -5,4 +5,6 @@ data class AppLockState(
   val pinSalt: String = "",
   val pinHash: String = "",
   val biometricEnabled: Boolean = false,
+  val failedAttempts: Int = 0,
+  val lockoutStartedMillis: Long = 0L,
 )

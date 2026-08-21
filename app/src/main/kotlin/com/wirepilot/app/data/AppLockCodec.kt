@@ -2,7 +2,7 @@ package com.wirepilot.app.data
 
 object AppLockCodec {
   fun encode(state: AppLockState): String {
-    return "${flag(state.enabled)}\t${state.pinSalt}\t${state.pinHash}\t${flag(state.biometricEnabled)}"
+    return "${flag(state.enabled)}\t${state.pinSalt}\t${state.pinHash}\t${flag(state.biometricEnabled)}\t${state.failedAttempts}\t${state.lockoutStartedMillis}"
   }
 
   fun decode(raw: String?): AppLockState {
@@ -18,6 +18,8 @@ object AppLockCodec {
       pinSalt = parts[1],
       pinHash = parts[2],
       biometricEnabled = parts.getOrNull(3) == "1",
+      failedAttempts = parts.getOrNull(4)?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
+      lockoutStartedMillis = parts.getOrNull(5)?.toLongOrNull()?.coerceAtLeast(0L) ?: 0L,
     )
   }
 

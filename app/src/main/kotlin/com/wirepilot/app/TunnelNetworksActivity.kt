@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -44,6 +45,7 @@ class TunnelNetworksActivity : AppCompatActivity() {
       finish()
       return
     }
+    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     setContentView(R.layout.activity_tunnel_networks)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     controller = (application as WirePilotApp).container.homeController

@@ -24,13 +24,15 @@ class AppLockCodecTest {
       pinSalt = "abcd",
       pinHash = "ef01",
       biometricEnabled = true,
+      failedAttempts = 3,
+      lockoutStartedMillis = 99L,
     )
     assertEquals(state, AppLockCodec.decode(AppLockCodec.encode(state)))
   }
 
   @Test
   fun encodeDisabled() {
-    assertEquals("0\t\t\t0", AppLockCodec.encode(AppLockState()))
+    assertEquals("0\t\t\t0\t0\t0", AppLockCodec.encode(AppLockState()))
   }
 
   @Test
@@ -40,5 +42,22 @@ class AppLockCodecTest {
     assertEquals("salt", state.pinSalt)
     assertEquals("hash", state.pinHash)
     assertFalse(state.biometricEnabled)
+    assertEquals(0, state.failedAttempts)
+    assertEquals(0L, state.lockoutStartedMillis)
+  }
+
+  @Test
+  fun decodeLegacyFourFields() {
+    val state = AppLockCodec.decode("1\tsalt\thash\t1")
+    assertTrue(state.biometricEnabled)
+    assertEquals(0, state.failedAttempts)
+    assertEquals(0L, state.lockoutStartedMillis)
+  }
+
+  @Test
+  fun decodeIgnoresNegativeCounts() {
+    val state = AppLockCodec.decode("1\tsalt\thash\t0\t-2\t-9")
+    assertEquals(0, state.failedAttempts)
+    assertEquals(0L, state.lockoutStartedMillis)
   }
 }

@@ -172,7 +172,7 @@ class TunnelsActivity : AppCompatActivity() {
       .setTitle(R.string.export_tunnels)
       .setMessage(R.string.export_contains_keys)
       .setPositiveButton(R.string.export_tunnels) { _, _ ->
-        exportLauncher.launch("wirepilot-tunnels.zip")
+        exportLauncher.launch("wirepilot-PRIVATE-KEYS.zip")
       }
       .setNegativeButton(R.string.cancel, null)
       .show()

@@ -2,6 +2,7 @@ package com.wirepilot.app.control
 
 import com.wirepilot.app.support.InMemoryAppLockStore
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -78,5 +79,22 @@ class AppLockSessionTest {
     assertFalse(session.enable("9999", "9999", salt))
     assertFalse(session.verifyPin("9999"))
     assertTrue(session.verifyPin("1234"))
+  }
+
+  @Test
+  fun failedPinsPersistAndLockOut() {
+    var now = 1_000L
+    val session = AppLockSession(InMemoryAppLockStore(), clock = { now })
+    assertTrue(session.enable("1234", "1234", salt))
+    session.lock()
+    repeat(5) {
+      assertFalse(session.verifyPin("0000"))
+    }
+    assertEquals(AppLockPolicy.LOCKOUT_INITIAL_MS, session.lockoutRemainingMillis())
+    assertFalse(session.verifyPin("1234"))
+    now += AppLockPolicy.LOCKOUT_INITIAL_MS
+    assertTrue(session.verifyPin("1234"))
+    assertEquals(0L, session.lockoutRemainingMillis())
+    assertFalse(session.needsChallenge())
   }
 }

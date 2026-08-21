@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -35,6 +36,7 @@ class LogDetailActivity : AppCompatActivity() {
       return
     }
     channel = parsed
+    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     setContentView(R.layout.activity_log_detail)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     controller = (application as WirePilotApp).container.homeController

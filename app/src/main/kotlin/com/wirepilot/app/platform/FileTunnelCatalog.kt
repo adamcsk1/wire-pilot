@@ -31,14 +31,17 @@ class FileTunnelCatalog(
   override fun readConf(name: String): String? {
     val file = fileFor(name) ?: return null
     if (file.isFile) {
-      readEncrypted(file)?.let { return it }
-      recoverLegacyTempAad(file)?.let { return it }
-      val plaintext = runCatching { file.readText() }.getOrNull() ?: return null
-      if (ConfigZipIO.parseOrNull(plaintext) == null) {
-        return null
+      readEncrypted(file)?.let { plaintext ->
+        siblingTemp(file).delete()
+        return plaintext
       }
-      runCatching { writeEncrypted(file, plaintext) }
-      return plaintext
+      val plaintext = runCatching { file.readText() }.getOrNull()
+      if (plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null) {
+        siblingTemp(file).delete()
+        runCatching { writeEncrypted(file, plaintext) }
+        return plaintext
+      }
+      recoverLegacyTempAad(file)?.let { return it }
     }
     return recoverLegacyTempAad(file)
   }
@@ -51,7 +54,7 @@ class FileTunnelCatalog(
   override fun delete(name: String) {
     val file = fileFor(name) ?: return
     file.delete()
-    File(directory, "${file.name}.tmp").delete()
+    siblingTemp(file).delete()
     File(stagingDirectory, file.name).delete()
   }
 
@@ -79,30 +82,23 @@ class FileTunnelCatalog(
     }.getOrNull()
   }
 
+  private fun siblingTemp(file: File): File {
+    return File(directory, "${file.name}.tmp")
+  }
+
   private fun recoverLegacyTempAad(file: File): String? {
-    val temp = File(directory, "${file.name}.tmp")
-    if (temp.isFile) {
-      readEncrypted(temp)?.let { plaintext ->
-        val published = runCatching {
-          writeEncrypted(file, plaintext)
-          true
-        }.getOrDefault(false)
-        if (published) {
-          temp.delete()
-        }
-        return plaintext
-      }
-    }
-    if (!file.isFile) {
+    val temp = siblingTemp(file)
+    if (!temp.isFile) {
       return null
     }
-    runCatching { file.copyTo(temp, overwrite = true) }.getOrNull() ?: return null
-    val plaintext = readEncrypted(temp)
-    temp.delete()
-    if (plaintext == null) {
-      return null
+    val plaintext = readEncrypted(temp) ?: return null
+    val published = runCatching {
+      writeEncrypted(file, plaintext)
+      true
+    }.getOrDefault(false)
+    if (published) {
+      temp.delete()
     }
-    runCatching { writeEncrypted(file, plaintext) }
     return plaintext
   }
 

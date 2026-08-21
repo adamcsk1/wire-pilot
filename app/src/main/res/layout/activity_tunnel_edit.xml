@@ -58,7 +58,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:hint="@string/tunnel_private_key">
+        android:hint="@string/tunnel_private_key"
+        app:endIconMode="password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
           android:id="@+id/privateKeyInput"
@@ -66,7 +67,8 @@
           android:layout_height="wrap_content"
           android:fontFamily="monospace"
           android:importantForAutofill="no"
-          android:inputType="textNoSuggestions|textFilter"
+          android:inputType="textPassword|textNoSuggestions|textFilter"
+          android:saveEnabled="false"
           android:singleLine="true" />
       </com.google.android.material.textfield.TextInputLayout>
 

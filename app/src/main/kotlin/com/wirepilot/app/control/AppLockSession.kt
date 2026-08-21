@@ -5,6 +5,7 @@ import com.wirepilot.app.data.AppLockStore
 
 class AppLockSession(
   private val store: AppLockStore,
+  private val clock: () -> Long = { System.currentTimeMillis() },
 ) {
   private var unlocked = false
 
@@ -28,12 +29,17 @@ class AppLockSession(
     unlocked = true
   }
 
+  fun lockoutRemainingMillis(): Long {
+    return AppLockPolicy.remainingLockMillis(store.read(), clock())
+  }
+
   fun verifyPin(pin: String): Boolean {
-    val accepted = AppLockPolicy.verify(store.read(), pin)
-    if (accepted) {
+    val checked = AppLockPolicy.checkPin(store.read(), pin, clock())
+    store.write(checked.state)
+    if (checked.accepted) {
       unlocked = true
     }
-    return accepted
+    return checked.accepted
   }
 
   fun unlockWithBiometric(): Boolean {
@@ -55,8 +61,12 @@ class AppLockSession(
   }
 
   fun disable(pin: String): Boolean {
-    val next = AppLockPolicy.disable(store.read(), pin) ?: return false
-    store.write(next)
+    val checked = AppLockPolicy.checkPin(store.read(), pin, clock())
+    if (!checked.accepted) {
+      store.write(checked.state)
+      return false
+    }
+    store.write(AppLockState())
     unlocked = true
     return true
   }

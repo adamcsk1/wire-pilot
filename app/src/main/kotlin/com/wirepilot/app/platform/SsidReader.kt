@@ -21,6 +21,7 @@ class SsidReader(
   private val lastKnown: LastKnownSsid,
 ) {
   fun snapshot(): NetworkSnapshot {
+    lastKnown.expireIfStale()
     refreshKnownNetworks()
     offer(connectivityManager.activeNetwork)
     val links = inventory.links()

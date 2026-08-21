@@ -3,8 +3,10 @@ package com.wirepilot.app.platform
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.wirepilot.app.control.AppLockSession
+import com.wirepilot.app.control.SsidRedactor
 import com.wirepilot.app.control.ApplyRunner
 import com.wirepilot.app.control.BootCoordinator
 import com.wirepilot.app.control.DiagnosticLog
@@ -32,6 +34,9 @@ class AppContainer(
 ) {
   private val appContext = context.applicationContext
   private val preferences = appContext.getSharedPreferences(PreferenceKeys.FILE, Context.MODE_PRIVATE)
+  private val ssidHmacKey = EncryptedSsidHmacStore(appContext).getOrCreate().also { key ->
+    SsidRedactor.installKey(key)
+  }
   val store: ControlStore = SharedPreferencesControlStore(preferences)
   val diagnostics: DiagnosticStore = SharedPreferencesDiagnosticStore(preferences)
   val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
@@ -56,7 +61,7 @@ class AppContainer(
   }
   val tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger)
   val appLockStore = EncryptedAppLockStore(appContext)
-  val appLockSession = AppLockSession(appLockStore)
+  val appLockSession = AppLockSession(appLockStore, clock = { SystemClock.elapsedRealtime() })
 
   init {
     ExcludedSsidMigration.run(preferences, catalog, excludedSsids)

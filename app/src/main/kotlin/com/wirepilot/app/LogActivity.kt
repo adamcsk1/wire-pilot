@@ -1,6 +1,7 @@
 package com.wirepilot.app
 
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
@@ -17,6 +18,7 @@ class LogActivity : AppCompatActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
     setContentView(R.layout.activity_log)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     controller = (application as WirePilotApp).container.homeController

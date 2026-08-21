@@ -116,16 +116,35 @@ class LockActivity : AppCompatActivity() {
         if (session.disable(pin)) {
           finish()
         } else {
-          Toast.makeText(this, R.string.wrong_pin, Toast.LENGTH_SHORT).show()
+          rejectPin()
         }
       }
       else -> {
         if (session.verifyPin(pin)) {
           finish()
         } else {
-          Toast.makeText(this, R.string.wrong_pin, Toast.LENGTH_SHORT).show()
+          rejectPin()
         }
       }
+    }
+  }
+
+  private fun rejectPin() {
+    val remaining = session.lockoutRemainingMillis()
+    if (remaining > 0L) {
+      Toast.makeText(this, lockoutMessage(remaining), Toast.LENGTH_SHORT).show()
+    } else {
+      Toast.makeText(this, R.string.wrong_pin, Toast.LENGTH_SHORT).show()
+    }
+  }
+
+  private fun lockoutMessage(remainingMillis: Long): String {
+    val seconds = ((remainingMillis + 999L) / 1000L).coerceAtLeast(1L)
+    return if (seconds >= 60L) {
+      val minutes = (seconds + 59L) / 60L
+      getString(R.string.pin_locked_minutes, minutes)
+    } else {
+      getString(R.string.pin_locked_seconds, seconds)
     }
   }
 

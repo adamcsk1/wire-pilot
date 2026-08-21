@@ -8,6 +8,10 @@ class LastKnownSsid(
   private val store: LastKnownSsidStore,
   private val clock: () -> Long = { 0L },
 ) {
+  fun expireIfStale() {
+    current()
+  }
+
   fun remember(snapshot: NetworkSnapshot) {
     val name = snapshot.wifiSsids.minOrNull() ?: return
     store.write(StoredLastKnownSsid(ssid = name, atMillis = clock()))

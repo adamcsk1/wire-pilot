@@ -99,4 +99,16 @@ class LastKnownSsidTest {
     cache.remember(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
     assertEquals("Home", cache.current())
   }
+
+  @Test
+  fun expireIfStaleClearsOnMobile() {
+    var now = 1_000L
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { now })
+    cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
+    now += LastKnownSsid.TTL_MILLIS + 1
+    cache.expireIfStale()
+    assertEquals(null, store.value)
+    assertEquals(null, cache.current())
+  }
 }
