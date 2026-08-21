@@ -16,38 +16,99 @@
     app:navigationIconTint="@color/on_surface"
     app:titleTextColor="@color/on_surface" />
 
-  <com.google.android.material.materialswitch.MaterialSwitch
-    android:id="@+id/loggingSwitch"
+  <com.google.android.material.card.MaterialCardView
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="20dp"
-    android:text="@string/logging_enabled"
-    android:textColor="@color/on_surface" />
+    android:layout_marginTop="16dp"
+    app:cardBackgroundColor="@color/surface_card"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/outline"
+    app:strokeWidth="1dp">
 
-  <androidx.core.widget.NestedScrollView
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="16dp">
+
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/logging_enabled"
+        android:textColor="@color/on_surface"
+        android:textStyle="bold" />
+
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/logging_section_hint"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="13sp" />
+
+      <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/loggingSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/enable_logging"
+        android:textColor="@color/on_surface" />
+    </LinearLayout>
+  </com.google.android.material.card.MaterialCardView>
+
+  <com.google.android.material.card.MaterialCardView
     android:layout_width="match_parent"
     android:layout_height="0dp"
     android:layout_marginHorizontal="20dp"
+    android:layout_marginTop="16dp"
     android:layout_weight="1"
-    android:fillViewport="true"
-    android:scrollbars="vertical">
+    app:cardBackgroundColor="@color/surface_card"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/outline"
+    app:strokeWidth="1dp">
 
-    <HorizontalScrollView
+    <LinearLayout
       android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:fillViewport="true"
-      android:scrollbars="horizontal">
+      android:layout_height="match_parent"
+      android:orientation="vertical"
+      android:padding="16dp">
 
       <TextView
-        android:id="@+id/logPreview"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="monospace"
-        android:textColor="@color/on_surface_muted"
-        android:textIsSelectable="true"
-        android:textSize="12sp" />
-    </HorizontalScrollView>
-  </androidx.core.widget.NestedScrollView>
+        android:text="@string/log_entries"
+        android:textColor="@color/on_surface"
+        android:textStyle="bold" />
+
+      <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
+        android:scrollbars="vertical">
+
+        <HorizontalScrollView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:fillViewport="true"
+          android:scrollbars="horizontal">
+
+          <TextView
+            android:id="@+id/logPreview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="@color/on_surface_muted"
+            android:textIsSelectable="true"
+            android:textSize="12sp" />
+        </HorizontalScrollView>
+      </androidx.core.widget.NestedScrollView>
+    </LinearLayout>
+  </com.google.android.material.card.MaterialCardView>
 
   <LinearLayout
     android:layout_width="match_parent"

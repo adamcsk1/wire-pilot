@@ -83,62 +83,153 @@
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 
-      <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/controlSwitch"
+      <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/control_section"
-        android:textColor="@color/on_surface" />
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
 
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/pauseButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/control_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/control_section_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/controlSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/control_enabled"
+            android:textColor="@color/on_surface" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/pauseButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/control_pause" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/control_pause" />
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
 
-      <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/vpnSwitch"
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/connect_vpn"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/connect_vpn_section_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/vpnSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/connect_selected_tunnel"
+            android:textColor="@color/on_surface" />
+
+          <TextView
+            android:id="@+id/manualVpnHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/manual_vpn_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/connect_vpn"
-        android:textColor="@color/on_surface" />
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
 
-      <TextView
-        android:id="@+id/manualVpnHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/manual_vpn_hint"
-        android:textColor="@color/on_surface_muted"
-        android:textSize="13sp" />
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
 
-      <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/tunnel_section"
-        android:textColor="@color/on_surface"
-        android:textStyle="bold" />
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tunnel_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
 
-      <TextView
-        android:id="@+id/activeTunnelLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/on_surface"
-        android:textSize="16sp" />
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/tunnel_section_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
 
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/manageTunnelsButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/manage_tunnels" />
+          <TextView
+            android:id="@+id/activeTunnelLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/on_surface"
+            android:textSize="16sp" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/manageTunnelsButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/manage_tunnels" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
   </ScrollView>
 </LinearLayout>
