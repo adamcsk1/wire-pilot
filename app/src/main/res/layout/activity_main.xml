@@ -133,33 +133,12 @@
         android:textSize="16sp" />
 
       <com.google.android.material.button.MaterialButton
-        android:id="@+id/selectTunnelButton"
+        android:id="@+id/manageTunnelsButton"
         style="@style/Widget.WirePilot.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="@string/select_tunnel" />
-
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/importTunnelButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/import_tunnel" />
-
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/exportTunnelButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/export_tunnels" />
-
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/splitTunnelButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/split_tunnel" />
+        android:text="@string/manage_tunnels" />
 
       <TextView
         android:layout_width="wrap_content"

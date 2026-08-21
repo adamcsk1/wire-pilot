@@ -32,4 +32,8 @@ class InMemorySplitTunnelStore : SplitTunnelStore {
   override fun write(tunnelName: String, settings: StoredSplitTunnel) {
     values[tunnelName] = settings
   }
+
+  override fun delete(tunnelName: String) {
+    values.remove(tunnelName)
+  }
 }

@@ -28,10 +28,18 @@ class HomeController(
     val decision = PolicyEvaluator.decide(resolved, network())
     val diagnosticState = diagnostics.read()
     val status = StatusPresenter.present(resolved, clock())
+    val names = catalog.names()
     val split = splitTunnels.read(resolved.tunnelName)
     return HomeViewState(
       tunnelName = resolved.tunnelName,
-      importedTunnels = catalog.names(),
+      importedTunnels = names,
+      tunnelRows = names.map { name ->
+        TunnelRow(
+          name = name,
+          selected = name == resolved.tunnelName,
+          up = tunnelState.isUp(name),
+        )
+      },
       splitTunnelMode = split.mode,
       splitTunnelPackages = split.packages,
       excludedSsids = resolved.excludedSsids.sorted(),
@@ -75,8 +83,92 @@ class HomeController(
     }
   }
 
-  fun setSplitTunnel(mode: SplitTunnelMode, packages: Set<String>) {
-    val tunnelName = persistResolved().tunnelName
+  fun saveTunnel(name: String, conf: String, previousName: String? = null): TunnelSaveResult {
+    val trimmed = name.trim()
+    if (!ConfigZipNames.isValidTunnelName(trimmed)) {
+      return TunnelSaveResult.INVALID_NAME
+    }
+    if (conf.isBlank()) {
+      return TunnelSaveResult.INVALID_CONF
+    }
+    val names = catalog.names()
+    val sameAsPrevious = !previousName.isNullOrBlank() && previousName == trimmed
+    if (trimmed in names && !sameAsPrevious) {
+      return TunnelSaveResult.NAME_IN_USE
+    }
+    val wrote = runCatching { catalog.writeConf(trimmed, conf) }.isSuccess
+    if (!wrote) {
+      return TunnelSaveResult.WRITE_FAILED
+    }
+    val renaming = !previousName.isNullOrBlank() && previousName != trimmed
+    val previousWasUp = renaming && tunnelState.isUp(previousName)
+    if (renaming) {
+      if (previousWasUp) {
+        applyRunner.force(TunnelCommand.DOWN, "tunnel-rename", previousName)
+      }
+      splitTunnels.write(trimmed, splitTunnels.read(previousName))
+      splitTunnels.delete(previousName)
+      catalog.delete(previousName)
+      val current = persistResolved()
+      if (current.tunnelName == previousName) {
+        store.write(current.copy(tunnelName = trimmed))
+      }
+    }
+    val current = persistResolved()
+    if (current.tunnelName.isBlank()) {
+      selectImportedTunnel(trimmed)
+      return TunnelSaveResult.SAVED
+    }
+    if (current.tunnelName != trimmed) {
+      return TunnelSaveResult.SAVED
+    }
+    applySavedTunnel(trimmed, "tunnel-save", previousWasUp || tunnelState.isUp(trimmed))
+    return TunnelSaveResult.SAVED
+  }
+
+  fun reloadImported(imported: List<String>) {
+    if (imported.isEmpty()) {
+      return
+    }
+    val current = persistResolved()
+    if (current.tunnelName.isBlank()) {
+      selectImportedTunnel(imported.first())
+      return
+    }
+    if (current.tunnelName !in imported) {
+      return
+    }
+    applySavedTunnel(current.tunnelName, "tunnel-import", tunnelState.isUp(current.tunnelName))
+  }
+
+  fun deleteImportedTunnel(name: String) {
+    if (name !in catalog.names()) {
+      return
+    }
+    if (tunnelState.isUp(name)) {
+      applyRunner.force(TunnelCommand.DOWN, "tunnel-delete", name)
+    }
+    catalog.delete(name)
+    splitTunnels.delete(name)
+    val current = persistResolved()
+    if (current.tunnelName != name) {
+      return
+    }
+    val remaining = catalog.names()
+    if (remaining.isEmpty()) {
+      store.write(current.copy(tunnelName = "", enabled = false, pausedUntilEpochMillis = null))
+      pauseAlarms.cancel()
+      syncWatching()
+      return
+    }
+    selectImportedTunnel(remaining.first())
+  }
+
+  fun splitSettings(tunnelName: String): StoredSplitTunnel {
+    return splitTunnels.read(tunnelName)
+  }
+
+  fun setSplitTunnel(mode: SplitTunnelMode, packages: Set<String>, tunnelName: String = persistResolved().tunnelName) {
     if (tunnelName.isBlank()) {
       return
     }
@@ -84,7 +176,9 @@ class HomeController(
     val storedMode = SplitTunnelPolicy.modeFrom(selection.excludedPackages, selection.includedPackages)
     val storedPackages = selection.excludedPackages + selection.includedPackages
     splitTunnels.write(tunnelName, StoredSplitTunnel(storedMode, storedPackages))
-    applyRunner.applyNow("split-tunnel")
+    if (persistResolved().tunnelName == tunnelName) {
+      applyRunner.applyNow("split-tunnel")
+    }
   }
 
   fun addExcludedSsid(raw: String): Boolean {
@@ -183,6 +277,18 @@ class HomeController(
 
   companion object {
     const val LOG_PREVIEW_LIMIT = 80
+  }
+
+  private fun applySavedTunnel(tunnelName: String, trigger: String, keepUp: Boolean) {
+    val resolved = persistResolved()
+    if (resolved.enabled) {
+      applyRunner.applyNow(trigger)
+      if (keepUp && PolicyEvaluator.decide(resolved, network()) is PolicyDecision.Skip) {
+        applyRunner.force(TunnelCommand.UP, trigger, tunnelName)
+      }
+    } else if (keepUp) {
+      applyRunner.force(TunnelCommand.UP, trigger, tunnelName)
+    }
   }
 
   private fun persistResolved(): StoredControl {

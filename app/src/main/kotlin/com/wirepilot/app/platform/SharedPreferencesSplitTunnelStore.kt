@@ -19,6 +19,12 @@ class SharedPreferencesSplitTunnelStore(
     }
   }
 
+  override fun delete(tunnelName: String) {
+    preferences.edit {
+      remove(key(tunnelName))
+    }
+  }
+
   private fun key(tunnelName: String): String {
     return "${PreferenceKeys.SPLIT_TUNNEL_PREFIX}$tunnelName"
   }

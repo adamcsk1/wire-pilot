@@ -20,6 +20,7 @@ class EmptyStoresTest {
   fun emptySplitStoreIsNoOp() {
     assertEquals(StoredSplitTunnel(), EmptySplitTunnelStore.read("office"))
     EmptySplitTunnelStore.write("office", StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("a")))
+    EmptySplitTunnelStore.delete("office")
     assertEquals(StoredSplitTunnel(), EmptySplitTunnelStore.read("office"))
   }
 }

@@ -2,11 +2,8 @@ package com.wirepilot.app
 
 import android.Manifest
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
-import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
@@ -26,14 +23,11 @@ import com.wirepilot.app.control.DurationFormatter
 import com.wirepilot.app.control.HomeController
 import com.wirepilot.app.control.HomeViewState
 import com.wirepilot.app.control.PauseOption
-import com.wirepilot.app.control.SplitTunnelMode
 import com.wirepilot.app.control.SsidBlocker
 import com.wirepilot.app.control.SsidReadiness
 import com.wirepilot.app.control.SsidReadinessEvaluator
 import com.wirepilot.app.control.SkipReason
 import com.wirepilot.app.control.StatusPresentation
-import com.wirepilot.app.platform.ConfigSplitMerger
-import com.wirepilot.app.platform.ConfigZipIO
 import com.wirepilot.app.ui.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
@@ -43,10 +37,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var statusTitle: TextView
   private lateinit var statusDetail: TextView
   private lateinit var activeTunnelLabel: TextView
-  private lateinit var selectTunnelButton: MaterialButton
-  private lateinit var importTunnelButton: MaterialButton
-  private lateinit var exportTunnelButton: MaterialButton
-  private lateinit var splitTunnelButton: MaterialButton
+  private lateinit var manageTunnelsButton: MaterialButton
   private lateinit var ssidList: LinearLayout
   private lateinit var emptySsids: TextView
   private lateinit var addCurrentButton: MaterialButton
@@ -62,28 +53,17 @@ class MainActivity : AppCompatActivity() {
   private var suppressControlSwitch = false
   private var suppressVpnSwitch = false
   private var pendingAfterVpnPrepare = "apply"
+  private val onTunnelSettled = {
+    if (!isDestroyed) {
+      refreshUi()
+    }
+  }
 
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
   ) {
     startWatchingIfNeeded()
     refreshUi()
-  }
-
-  private val importLauncher = registerForActivityResult(
-    ActivityResultContracts.OpenDocument(),
-  ) { uri ->
-    if (uri != null) {
-      importFrom(uri)
-    }
-  }
-
-  private val exportLauncher = registerForActivityResult(
-    ActivityResultContracts.CreateDocument("application/zip"),
-  ) { uri ->
-    if (uri != null) {
-      exportTo(uri)
-    }
   }
 
   private val vpnPrepareLauncher = registerForActivityResult(
@@ -117,11 +97,7 @@ class MainActivity : AppCompatActivity() {
 
   override fun onStart() {
     super.onStart()
-    (application as WirePilotApp).container.tunnel.setSettledListener {
-      if (!isDestroyed) {
-        refreshUi()
-      }
-    }
+    (application as WirePilotApp).container.tunnel.addSettledListener(onTunnelSettled)
   }
 
   override fun onResume() {
@@ -131,7 +107,7 @@ class MainActivity : AppCompatActivity() {
   }
 
   override fun onStop() {
-    (application as WirePilotApp).container.tunnel.setSettledListener(null)
+    (application as WirePilotApp).container.tunnel.removeSettledListener(onTunnelSettled)
     super.onStop()
   }
 
@@ -159,10 +135,7 @@ class MainActivity : AppCompatActivity() {
     statusTitle = findViewById(R.id.statusTitle)
     statusDetail = findViewById(R.id.statusDetail)
     activeTunnelLabel = findViewById(R.id.activeTunnelLabel)
-    selectTunnelButton = findViewById(R.id.selectTunnelButton)
-    importTunnelButton = findViewById(R.id.importTunnelButton)
-    exportTunnelButton = findViewById(R.id.exportTunnelButton)
-    splitTunnelButton = findViewById(R.id.splitTunnelButton)
+    manageTunnelsButton = findViewById(R.id.manageTunnelsButton)
     ssidList = findViewById(R.id.ssidList)
     emptySsids = findViewById(R.id.emptySsids)
     addCurrentButton = findViewById(R.id.addCurrentButton)
@@ -177,12 +150,9 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun bindActions() {
-    selectTunnelButton.setOnClickListener { showTunnelPicker() }
-    importTunnelButton.setOnClickListener {
-      importLauncher.launch(arrayOf("application/zip", "text/plain"))
+    manageTunnelsButton.setOnClickListener {
+      startActivity(Intent(this, TunnelsActivity::class.java))
     }
-    exportTunnelButton.setOnClickListener { confirmExport() }
-    splitTunnelButton.setOnClickListener { showSplitTunnelDialog() }
     addCurrentButton.setOnClickListener { onAddCurrentOrFixSsid() }
     addSsidButton.setOnClickListener { showAddSsidDialog() }
     connectOnMobileSwitch.setOnCheckedChangeListener { _, checked ->
@@ -232,11 +202,8 @@ class MainActivity : AppCompatActivity() {
     } else {
       getString(R.string.active_tunnel, state.tunnelName)
     }
-    selectTunnelButton.isEnabled = state.importedTunnels.isNotEmpty()
-    exportTunnelButton.isEnabled = state.importedTunnels.isNotEmpty()
-    splitTunnelButton.isEnabled = state.tunnelName.isNotBlank()
     bindStatus(state.status)
-    bindControlSwitch(state.controlSelection)
+    bindControlSwitch(state)
     bindConnectOnMobile(state.connectOnMobile)
     bindVpnSwitch(state)
     bindApplyNow(state)
@@ -285,21 +252,24 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-  private fun bindControlSwitch(selection: ControlSelection) {
-    val armed = selection != ControlSelection.OFF
+  private fun bindControlSwitch(state: HomeViewState) {
+    val hasTunnel = state.tunnelName.isNotBlank()
+    val armed = state.controlSelection != ControlSelection.OFF
+    controlSwitch.isEnabled = hasTunnel || armed
     suppressControlSwitch = true
     controlSwitch.isChecked = armed
     suppressControlSwitch = false
-    pauseButton.isVisible = armed
+    pauseButton.isVisible = hasTunnel && armed
   }
 
   private fun bindVpnSwitch(state: HomeViewState) {
+    val hasTunnel = state.tunnelName.isNotBlank()
     val manual = state.controlSelection != ControlSelection.ON
     suppressVpnSwitch = true
     vpnSwitch.isChecked = state.vpnConnected
-    vpnSwitch.isEnabled = manual
+    vpnSwitch.isEnabled = hasTunnel && manual
     suppressVpnSwitch = false
-    manualVpnHint.isVisible = manual
+    manualVpnHint.isVisible = hasTunnel && manual
   }
 
   private fun bindConnectOnMobile(enabled: Boolean) {
@@ -453,7 +423,9 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun startWatchingIfNeeded() {
-    val watching = controller.viewState().controlSelection == ControlSelection.ON &&
+    val state = controller.viewState()
+    val watching = state.controlSelection == ControlSelection.ON &&
+      state.tunnelName.isNotBlank() &&
       AppPermissions.notificationsGranted(this)
     (application as WirePilotApp).container.watching.sync(watching)
   }
@@ -497,158 +469,5 @@ class MainActivity : AppCompatActivity() {
       return false
     }
     return true
-  }
-
-  private fun showTunnelPicker() {
-    val names = controller.viewState().importedTunnels
-    if (names.isEmpty()) {
-      return
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.select_tunnel)
-      .setItems(names.toTypedArray()) { _, which ->
-        controller.selectImportedTunnel(names[which])
-        refreshUi()
-      }
-      .show()
-  }
-
-  private fun confirmExport() {
-    AlertDialog.Builder(this)
-      .setTitle(R.string.export_tunnels)
-      .setMessage(R.string.export_contains_keys)
-      .setPositiveButton(R.string.export_tunnels) { _, _ ->
-        exportLauncher.launch("wirepilot-tunnels.zip")
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
-  }
-
-  private fun importFrom(uri: Uri) {
-    val container = (application as WirePilotApp).container
-    val displayName = displayName(uri)
-    val isZip = displayName.endsWith(".zip", ignoreCase = true)
-    val names = runCatching {
-      contentResolver.openInputStream(uri)?.use { input ->
-        ConfigZipIO.peekNames(input, isZip, displayName)
-      }.orEmpty()
-    }.getOrDefault(emptyList())
-    if (names.isEmpty()) {
-      Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
-      return
-    }
-    val overlap = names.filter { it in container.catalog.names() }
-    if (overlap.isEmpty()) {
-      writeImported(uri, displayName, isZip)
-      return
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.import_overwrite_title)
-      .setMessage(getString(R.string.import_overwrite_message, overlap.joinToString(", ")))
-      .setPositiveButton(R.string.import_overwrite) { _, _ ->
-        writeImported(uri, displayName, isZip)
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
-  }
-
-  private fun writeImported(uri: Uri, displayName: String, isZip: Boolean) {
-    val container = (application as WirePilotApp).container
-    val imported = runCatching {
-      contentResolver.openInputStream(uri)?.use { input ->
-        ConfigZipIO.importAll(input, isZip, displayName, container.catalog, container.splitTunnels)
-      }.orEmpty()
-    }.getOrDefault(emptyList())
-    if (imported.isEmpty()) {
-      Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
-      return
-    }
-    val active = controller.viewState().tunnelName
-    if (active.isBlank()) {
-      controller.selectImportedTunnel(imported.first())
-    } else if (active in imported) {
-      controller.applyNow()
-    }
-    Toast.makeText(this, getString(R.string.import_success, imported.size), Toast.LENGTH_SHORT).show()
-    refreshUi()
-  }
-
-  private fun exportTo(uri: Uri) {
-    val container = (application as WirePilotApp).container
-    val names = container.catalog.names()
-    val ok = runCatching {
-      val output = contentResolver.openOutputStream(uri) ?: return@runCatching false
-      output.use { stream ->
-        ConfigZipIO.exportZip(stream, container.catalog, names) { name, conf ->
-          val parsed = ConfigZipIO.parseOrNull(conf) ?: return@exportZip conf
-          ConfigSplitMerger.toConf(ConfigSplitMerger.merge(parsed, container.splitTunnels.read(name)))
-        }
-      }
-      true
-    }.getOrDefault(false)
-    Toast.makeText(this, if (ok) R.string.export_success else R.string.export_failed, Toast.LENGTH_SHORT).show()
-  }
-
-  private fun displayName(uri: Uri): String {
-    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-      if (cursor.moveToFirst()) {
-        return cursor.getString(0).orEmpty()
-      }
-    }
-    return uri.lastPathSegment.orEmpty()
-  }
-
-  private fun showSplitTunnelDialog() {
-    val state = controller.viewState()
-    val modes = arrayOf(
-      getString(R.string.split_all_apps),
-      getString(R.string.split_exclude_apps),
-      getString(R.string.split_include_apps),
-    )
-    val current = when (state.splitTunnelMode) {
-      SplitTunnelMode.ALL_APPS -> 0
-      SplitTunnelMode.EXCLUDE_APPS -> 1
-      SplitTunnelMode.INCLUDE_APPS -> 2
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.split_tunnel)
-      .setSingleChoiceItems(modes, current) { dialog, which ->
-        dialog.dismiss()
-        val mode = when (which) {
-          1 -> SplitTunnelMode.EXCLUDE_APPS
-          2 -> SplitTunnelMode.INCLUDE_APPS
-          else -> SplitTunnelMode.ALL_APPS
-        }
-        if (mode == SplitTunnelMode.ALL_APPS) {
-          controller.setSplitTunnel(mode, emptySet())
-          refreshUi()
-        } else {
-          showAppPicker(mode, state.splitTunnelPackages)
-        }
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
-  }
-
-  private fun showAppPicker(mode: SplitTunnelMode, selected: Set<String>) {
-    val apps = packageManager.getInstalledApplications(0)
-      .filter { info -> info.flags and ApplicationInfo.FLAG_SYSTEM == 0 || packageManager.getLaunchIntentForPackage(info.packageName) != null }
-      .sortedBy { info -> packageManager.getApplicationLabel(info).toString() }
-    val labels = apps.map { info -> "${packageManager.getApplicationLabel(info)} (${info.packageName})" }.toTypedArray()
-    val checked = BooleanArray(apps.size) { index -> apps[index].packageName in selected }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.split_tunnel)
-      .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-        checked[which] = isChecked
-      }
-      .setPositiveButton(R.string.add) { _, _ ->
-        val packages = apps.mapIndexedNotNull { index, info ->
-          if (checked[index]) info.packageName else null
-        }.toSet()
-        controller.setSplitTunnel(mode, packages)
-        refreshUi()
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
   }
 }

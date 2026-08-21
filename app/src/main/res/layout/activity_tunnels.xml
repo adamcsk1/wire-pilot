@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/tunnelsToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:navigationIcon="?attr/homeAsUpIndicator"
+    app:navigationIconTint="@color/on_surface"
+    app:title="@string/tunnels_title"
+    app:titleTextColor="@color/on_surface" />
+
+  <ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="20dp">
+
+      <TextView
+        android:id="@+id/emptyTunnels"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tunnels_empty"
+        android:textColor="@color/on_surface_muted" />
+
+      <LinearLayout
+        android:id="@+id/tunnelList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/addTunnelButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/add_tunnel" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/importTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_tunnel" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/exportTunnelButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/export_tunnels" />
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>

@@ -49,6 +49,17 @@
       android:exported="false"
       android:parentActivityName=".MainActivity" />
 
+    <activity
+      android:name=".TunnelsActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity" />
+
+    <activity
+      android:name=".TunnelEditActivity"
+      android:exported="false"
+      android:parentActivityName=".TunnelsActivity"
+      android:windowSoftInputMode="stateHidden|adjustResize" />
+
     <service
       android:name=".platform.WatchingService"
       android:exported="false"

@@ -10,11 +10,13 @@ data class StoredSplitTunnel(
 interface SplitTunnelStore {
   fun read(tunnelName: String): StoredSplitTunnel
   fun write(tunnelName: String, settings: StoredSplitTunnel)
+  fun delete(tunnelName: String)
 }
 
 object EmptySplitTunnelStore : SplitTunnelStore {
   override fun read(tunnelName: String): StoredSplitTunnel = StoredSplitTunnel()
   override fun write(tunnelName: String, settings: StoredSplitTunnel) = Unit
+  override fun delete(tunnelName: String) = Unit
 }
 
 object SplitTunnelCodec {

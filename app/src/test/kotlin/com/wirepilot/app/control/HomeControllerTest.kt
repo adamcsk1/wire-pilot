@@ -1,6 +1,7 @@
 package com.wirepilot.app.control
 
 import com.wirepilot.app.data.StoredControl
+import com.wirepilot.app.data.TunnelCatalog
 import com.wirepilot.app.support.InMemoryControlStore
 import com.wirepilot.app.support.InMemoryDiagnosticStore
 import com.wirepilot.app.support.InMemorySplitTunnelStore
@@ -372,5 +373,544 @@ class HomeControllerTest {
   fun vpnConnectedFalseWhenTunnelDown() {
     val (home) = controller(StoredControl(tunnelName = "office"))
     assertFalse(home.viewState().vpnConnected)
+  }
+
+  @Test
+  fun tunnelRowsMarkSelectedAndUp() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = TunnelStatePort { name -> name == "office" },
+    )
+    assertEquals(
+      listOf(
+        TunnelRow(name = "HomeVPN", selected = false, up = false),
+        TunnelRow(name = "office", selected = true, up = true),
+      ),
+      home.viewState().tunnelRows,
+    )
+  }
+
+  @Test
+  fun saveFirstTunnelSelectsIt() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val catalog = InMemoryTunnelCatalog()
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "[Interface]"))
+    assertEquals("office", store.read().tunnelName)
+    assertEquals(listOf("office"), catalog.names())
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+  }
+
+  @Test
+  fun saveTunnelWriteFailure() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val catalog = object : TunnelCatalog {
+      override fun names(): List<String> = emptyList()
+      override fun readConf(name: String): String? = null
+      override fun writeConf(name: String, conf: String) {
+        error("disk")
+      }
+      override fun delete(name: String) = Unit
+    }
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.WRITE_FAILED, home.saveTunnel("office", "[Interface]"))
+    assertEquals("", store.read().tunnelName)
+  }
+
+  @Test
+  fun saveRejectsInvalidNameAndBlankConf() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.INVALID_NAME, home.saveTunnel("bad/name", "[Interface]"))
+    assertEquals(TunnelSaveResult.INVALID_CONF, home.saveTunnel("home", "  "))
+    assertEquals("office", store.read().tunnelName)
+    assertEquals(listOf("office"), catalog.names())
+  }
+
+  @Test
+  fun saveRejectsNameInUseOnCreateAndRename() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.NAME_IN_USE, home.saveTunnel("HomeVPN", "[Interface]"))
+    assertEquals(TunnelSaveResult.NAME_IN_USE, home.saveTunnel("HomeVPN", "[Interface]", "office"))
+    assertEquals("b", catalog.readConf("office"))
+  }
+
+  @Test
+  fun saveAdditionalTunnelLeavesDefault() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("HomeVPN", "[Peer]"))
+    assertEquals("office", store.read().tunnelName)
+    assertEquals("[Peer]", catalog.readConf("HomeVPN"))
+    assertTrue(log.entries.none { it.second.contains("trigger=tunnel-save") })
+  }
+
+  @Test
+  fun saveSelectedWhileEnabledApplies() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "new", "office"))
+    assertEquals("new", catalog.readConf("office"))
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-save") })
+  }
+
+  @Test
+  fun saveSelectedWhileOffReupsWhenConnected() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "new", "office"))
+    assertEquals(
+      listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.UP),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun saveSelectedWhileOffSkipsWhenDown() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val tunnel = RecordingTunnel()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "new", "office"))
+    assertTrue(tunnel.commands.isEmpty())
+  }
+
+  @Test
+  fun renameMovesSplitAndRetargetsDefault() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val splits = InMemorySplitTunnelStore()
+    splits.write("office", StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo")))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+      splitTunnels = splits,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("HomeVPN", "new", "office"))
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertEquals("new", catalog.readConf("HomeVPN"))
+    assertEquals(null, catalog.readConf("office"))
+    assertEquals(StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo")), splits.read("HomeVPN"))
+    assertEquals(StoredSplitTunnel(), splits.read("office"))
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-save") })
+  }
+
+  @Test
+  fun renameDownsPreviousWhenPolicySkips() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.WIFI) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.WIFI) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("HomeVPN", "new", "office"))
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertEquals(
+      listOf(
+        "office" to TunnelCommand.UP,
+        "office" to TunnelCommand.DOWN,
+        "HomeVPN" to TunnelCommand.UP,
+      ),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun saveSelectedWhileSkipReupsLiveTunnel() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.WIFI) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.WIFI) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("office", "new", "office"))
+    assertEquals(
+      listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.UP),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun renameSelectedWhileOffReupsPrevious() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("HomeVPN", "new", "office"))
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertEquals(
+      listOf(
+        "office" to TunnelCommand.UP,
+        "office" to TunnelCommand.DOWN,
+        "HomeVPN" to TunnelCommand.UP,
+      ),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun renameNonSelectedLeavesDefault() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+    )
+    assertEquals(TunnelSaveResult.SAVED, home.saveTunnel("Travel", "moved", "HomeVPN"))
+    assertEquals("office", store.read().tunnelName)
+    assertEquals("moved", catalog.readConf("Travel"))
+    assertEquals(null, catalog.readConf("HomeVPN"))
+  }
+
+  @Test
+  fun reloadImportedSelectsFirstWhenBlank() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    home.reloadImported(emptyList())
+    assertEquals("", store.read().tunnelName)
+    home.reloadImported(listOf("HomeVPN"))
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+  }
+
+  @Test
+  fun reloadImportedAppliesWhenEnabled() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    home.reloadImported(listOf("HomeVPN"))
+    assertTrue(log.entries.none { it.second.contains("trigger=tunnel-import") })
+    home.reloadImported(listOf("office"))
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-import") })
+  }
+
+  @Test
+  fun reloadImportedReupsWhenSkipAndConnected() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.WIFI) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.WIFI) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    home.reloadImported(listOf("office"))
+    assertEquals(
+      listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.UP),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun reloadImportedReupsWhenOffAndConnected() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val tunnel = RecordingTunnel()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    home.reloadImported(listOf("office"))
+    assertEquals(
+      listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.UP),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun reloadImportedSkipsWhenOffAndDown() {
+    val store = InMemoryControlStore(StoredControl(enabled = false, tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val tunnel = RecordingTunnel()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+      tunnelState = tunnel,
+    )
+    home.reloadImported(listOf("office"))
+    assertTrue(tunnel.commands.isEmpty())
+  }
+
+  @Test
+  fun deleteLastClearsNameAndDowns() {
+    val store = InMemoryControlStore(
+      StoredControl(enabled = false, pausedUntilEpochMillis = now + 60_000L, tunnelName = "office"),
+    )
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
+    val splits = InMemorySplitTunnelStore()
+    splits.write("office", StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo")))
+    val tunnel = RecordingTunnel()
+    val alarms = RecordingPauseAlarm()
+    val watching = RecordingWatching()
+    tunnel.send("office", TunnelCommand.UP)
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = alarms,
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      watching = watching,
+      catalog = catalog,
+      splitTunnels = splits,
+      tunnelState = tunnel,
+    )
+    home.deleteImportedTunnel("office")
+    assertEquals("", store.read().tunnelName)
+    assertFalse(store.read().enabled)
+    assertEquals(null, store.read().pausedUntilEpochMillis)
+    assertTrue(alarms.cancelCount >= 1)
+    assertEquals(false, watching.values.last())
+    assertTrue(catalog.names().isEmpty())
+    assertEquals(StoredSplitTunnel(), splits.read("office"))
+    assertEquals(
+      listOf("office" to TunnelCommand.UP, "office" to TunnelCommand.DOWN),
+      tunnel.commands,
+    )
+  }
+
+  @Test
+  fun deleteSelectedPicksNext() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      catalog = catalog,
+    )
+    home.deleteImportedTunnel("office")
+    assertEquals("HomeVPN", store.read().tunnelName)
+    assertEquals(listOf("HomeVPN"), catalog.names())
+    assertTrue(log.entries.any { it.second.contains("trigger=tunnel-select") })
+  }
+
+  @Test
+  fun deleteOtherLeavesDefault() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      catalog = catalog,
+    )
+    home.deleteImportedTunnel("HomeVPN")
+    home.deleteImportedTunnel("missing")
+    assertEquals("office", store.read().tunnelName)
+    assertEquals(listOf("office"), catalog.names())
+  }
+
+  @Test
+  fun splitSettingsReadsNamedTunnel() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val splits = InMemorySplitTunnelStore()
+    splits.write("HomeVPN", StoredSplitTunnel(SplitTunnelMode.INCLUDE_APPS, setOf("com.bar")))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      splitTunnels = splits,
+    )
+    assertEquals(
+      StoredSplitTunnel(SplitTunnelMode.INCLUDE_APPS, setOf("com.bar")),
+      home.splitSettings("HomeVPN"),
+    )
+  }
+
+  @Test
+  fun setSplitTunnelOnOtherNameDoesNotApply() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val splits = InMemorySplitTunnelStore()
+    val log = RecordingLog()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel(), log),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      log = log,
+      splitTunnels = splits,
+    )
+    home.setSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo"), "HomeVPN")
+    assertEquals(SplitTunnelMode.EXCLUDE_APPS, splits.read("HomeVPN").mode)
+    assertTrue(log.entries.none { it.second.contains("trigger=split-tunnel") })
   }
 }

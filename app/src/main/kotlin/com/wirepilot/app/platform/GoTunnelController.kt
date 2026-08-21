@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 
@@ -29,10 +30,14 @@ class GoTunnelController(
   private val nextGeneration = AtomicLong(0)
   private val executor = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
-  @Volatile private var settledListener: (() -> Unit)? = null
+  private val settledListeners = CopyOnWriteArraySet<() -> Unit>()
 
-  fun setSettledListener(listener: (() -> Unit)?) {
-    settledListener = listener
+  fun addSettledListener(listener: () -> Unit) {
+    settledListeners.add(listener)
+  }
+
+  fun removeSettledListener(listener: () -> Unit) {
+    settledListeners.remove(listener)
   }
 
   override fun send(tunnelName: String, command: TunnelCommand) {
@@ -64,8 +69,12 @@ class GoTunnelController(
   private fun applyCommand(tunnelName: String, command: TunnelCommand, generation: Long) {
     val stored = catalog.readConf(tunnelName)
     if (stored == null) {
-      clearPendingIfCurrent(tunnelName, generation)
-      log.record(LogKind.TUNNEL_ERROR, "missing-conf tunnel=$tunnelName")
+      if (command == TunnelCommand.DOWN) {
+        downMissingConf(tunnelName, generation)
+      } else {
+        clearPendingIfCurrent(tunnelName, generation)
+        log.record(LogKind.TUNNEL_ERROR, "missing-conf tunnel=$tunnelName")
+      }
       return
     }
     val parsed = ConfigZipIO.parseOrNull(stored)
@@ -96,6 +105,31 @@ class GoTunnelController(
         } else {
           lastUpConfDigest.remove(tunnelName)
         }
+        clearPendingIfCurrent(tunnelName, generation)
+        log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
+      }
+      .onFailure { error ->
+        clearPendingIfCurrent(tunnelName, generation)
+        log.record(LogKind.TUNNEL_ERROR, "${error.javaClass.simpleName} tunnel=$tunnelName")
+      }
+  }
+
+  private fun downMissingConf(tunnelName: String, generation: Long) {
+    val tunnel = tunnels[tunnelName]
+    if (tunnel == null) {
+      lastUpConfDigest.remove(tunnelName)
+      clearPendingIfCurrent(tunnelName, generation)
+      return
+    }
+    val actual = runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN)
+    if (actual == Tunnel.State.DOWN) {
+      lastUpConfDigest.remove(tunnelName)
+      clearPendingIfCurrent(tunnelName, generation)
+      return
+    }
+    runCatching { backend.setState(tunnel, Tunnel.State.DOWN, null) }
+      .onSuccess { state ->
+        lastUpConfDigest.remove(tunnelName)
         clearPendingIfCurrent(tunnelName, generation)
         log.record(LogKind.TUNNEL, "state=${state.name} tunnel=$tunnelName")
       }
@@ -143,8 +177,12 @@ class GoTunnelController(
   }
 
   private fun notifySettled() {
-    val listener = settledListener ?: return
-    mainHandler.post(listener)
+    if (settledListeners.isEmpty()) {
+      return
+    }
+    mainHandler.post {
+      settledListeners.forEach { listener -> listener() }
+    }
   }
 
   private fun digest(confText: String): String {

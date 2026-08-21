@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:importantForAutofill="no"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/tunnelEditToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:navigationIcon="?attr/homeAsUpIndicator"
+    app:navigationIconTint="@color/on_surface"
+    app:title="@string/edit_tunnel"
+    app:titleTextColor="@color/on_surface" />
+
+  <ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="20dp">
+
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tunnel_interface_section"
+        android:textColor="@color/on_surface"
+        android:textStyle="bold" />
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/tunnel_name_hint"
+        app:counterEnabled="true"
+        app:counterMaxLength="15">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/tunnelNameInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:inputType="textNoSuggestions"
+          android:maxLength="15"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_private_key">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/privateKeyInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:fontFamily="monospace"
+          android:importantForAutofill="no"
+          android:inputType="textNoSuggestions|textFilter"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/generateKeyButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tunnel_generate_key" />
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_public_key">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/publicKeyInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:fontFamily="monospace"
+          android:focusable="true"
+          android:inputType="none"
+          android:longClickable="true"
+          android:singleLine="true"
+          android:textIsSelectable="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_addresses">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/addressesInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:inputType="textNoSuggestions"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_listen_port">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/listenPortInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:inputType="number"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_dns">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/dnsInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:inputType="textNoSuggestions"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/tunnel_mtu">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/mtuInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:inputType="number"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/tunnel_peers_section"
+        android:textColor="@color/on_surface"
+        android:textStyle="bold" />
+
+      <LinearLayout
+        android:id="@+id/peerList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/addPeerButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/tunnel_add_peer" />
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>
