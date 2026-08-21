@@ -1,12 +1,12 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.data.StoredControl
 import com.wirepilot.app.support.InMemoryControlStore
 import com.wirepilot.app.support.RecordingLog
 import com.wirepilot.app.support.RecordingTunnel
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ApplyRunnerTest {
@@ -200,24 +200,14 @@ class ApplyRunnerTest {
   }
 
   @Test
-  fun requestsRetryWhenWifiUnreadable() {
-    val retry = ApplyRunner(
+  fun skipsUnreadableWifiWithoutRetry() {
+    val tunnel = RecordingTunnel()
+    ApplyRunner(
       store = InMemoryControlStore(StoredControl(tunnelName = "office")),
       clock = { 10L },
       network = { NetworkSnapshot(NetworkKind.WIFI) },
-      tunnel = RecordingTunnel(),
+      tunnel = tunnel,
     ).applyNow("debounce")
-    assertTrue(retry)
-  }
-
-  @Test
-  fun doesNotRequestRetryOnRetryTrigger() {
-    val retry = ApplyRunner(
-      store = InMemoryControlStore(StoredControl(tunnelName = "office")),
-      clock = { 10L },
-      network = { NetworkSnapshot(NetworkKind.WIFI) },
-      tunnel = RecordingTunnel(),
-    ).applyNow("unreadable-retry-5")
-    assertFalse(retry)
+    assertTrue(tunnel.commands.isEmpty())
   }
 }

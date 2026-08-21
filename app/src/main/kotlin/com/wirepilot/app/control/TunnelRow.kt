@@ -1,5 +1,7 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.SplitTunnelMode
+
 data class TunnelRow(
   val name: String,
   val selected: Boolean,

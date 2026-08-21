@@ -1,4 +1,4 @@
-package com.wirepilot.app.control
+package com.wirepilot.app.data
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

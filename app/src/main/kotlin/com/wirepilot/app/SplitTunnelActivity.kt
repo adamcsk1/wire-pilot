@@ -27,7 +27,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.wirepilot.app.control.AppEntry
 import com.wirepilot.app.control.AppListFilter
 import com.wirepilot.app.control.HomeController
-import com.wirepilot.app.control.SplitTunnelMode
+import com.wirepilot.app.data.SplitTunnelMode
 import com.wirepilot.app.ui.SystemBarInsets
 
 class SplitTunnelActivity : AppCompatActivity() {

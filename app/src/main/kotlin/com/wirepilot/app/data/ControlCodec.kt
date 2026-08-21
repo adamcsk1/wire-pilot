@@ -1,7 +1,5 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.SsidNormalizer
-
 object ControlCodec {
   private const val SSID_SEPARATOR = '\u001E'
 

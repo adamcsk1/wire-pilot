@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.wirepilot.app.WirePilotApp
 import com.wirepilot.app.control.LogFormatter
-import com.wirepilot.app.control.LogKind
+import com.wirepilot.app.data.LogKind
 
 class NetworkChangeReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent?) {

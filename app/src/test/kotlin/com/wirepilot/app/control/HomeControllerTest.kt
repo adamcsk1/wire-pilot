@@ -1,6 +1,8 @@
 package com.wirepilot.app.control
 
 import com.wirepilot.app.data.DiagnosticState
+import com.wirepilot.app.data.LogKind
+import com.wirepilot.app.data.SplitTunnelMode
 import com.wirepilot.app.data.StoredControl
 import com.wirepilot.app.data.TunnelCatalog
 import com.wirepilot.app.support.InMemoryControlStore
@@ -12,7 +14,6 @@ import com.wirepilot.app.support.InMemoryTunnelCatalog
 import com.wirepilot.app.support.RecordingLog
 import com.wirepilot.app.support.RecordingPauseAlarm
 import com.wirepilot.app.support.RecordingTunnel
-import com.wirepilot.app.support.RecordingWatching
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,7 +26,6 @@ class HomeControllerTest {
     initial: StoredControl = StoredControl(tunnelName = "office"),
     network: NetworkSnapshot = NetworkSnapshot(NetworkKind.MOBILE),
     log: DiagnosticLog = NoOpDiagnosticLog,
-    watching: WatchingServicePort = NoOpWatchingService,
     tunnelState: TunnelStatePort = NoOpTunnelState,
   ): Triple<HomeController, InMemoryControlStore, RecordingPauseAlarm> {
     val store = InMemoryControlStore(initial)
@@ -50,7 +50,6 @@ class HomeControllerTest {
       network = { network },
       diagnostics = InMemoryDiagnosticStore(),
       log = log,
-      watching = watching,
       excludedSsids = ssids,
       tunnelState = tunnelState,
     )
@@ -64,6 +63,7 @@ class HomeControllerTest {
     assertEquals("office", state.tunnelName)
     assertEquals(listOf("Able", "Zed"), state.excludedSsids)
     assertEquals(StatusPresentation.Watching, state.status)
+    assertEquals(PolicyLine(PolicyLineKind.MOBILE_DOWN, "office"), state.policyLine)
     assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
     assertTrue(state.applyNow.enabled)
     assertFalse(state.connectOnMobile)
@@ -80,22 +80,51 @@ class HomeControllerTest {
       network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
     )
     val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.WIFI_EXCLUDED_DOWN, "office", "Home"), state.policyLine)
     assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
     assertTrue(state.applyNow.enabled)
+  }
+
+  @Test
+  fun viewStateShowsWifiUpPolicyLine() {
+    val (home) = controller(
+      StoredControl(tunnelName = "office"),
+      network = NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe")),
+    )
+    assertEquals(PolicyLine(PolicyLineKind.WIFI_UP, "office", "Cafe"), home.viewState().policyLine)
+  }
+
+  @Test
+  fun viewStateShowsMobileUpPolicyLine() {
+    val (home) = controller(
+      StoredControl(tunnelName = "office", mobileTunnelName = "travel"),
+      network = NetworkSnapshot(NetworkKind.MOBILE),
+    )
+    assertEquals(PolicyLine(PolicyLineKind.MOBILE_UP, "travel"), home.viewState().policyLine)
   }
 
   @Test
   fun viewStateAppliesDownWhenDisabled() {
     val (home) = controller(StoredControl(enabled = false, tunnelName = "office"))
     val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.CONTROL_OFF), state.policyLine)
     assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
     assertTrue(state.applyNow.enabled)
+  }
+
+  @Test
+  fun viewStateShowsPausedPolicyLine() {
+    val (home) = controller(
+      StoredControl(enabled = false, pausedUntilEpochMillis = now + 60_000L, tunnelName = "office"),
+    )
+    assertEquals(PolicyLine(PolicyLineKind.PAUSED), home.viewState().policyLine)
   }
 
   @Test
   fun viewStateDisablesApplyNowWhenTunnelBlank() {
     val (home) = controller(StoredControl(enabled = false, tunnelName = ""))
     val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.NO_TUNNEL), state.policyLine)
     assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
     assertFalse(state.applyNow.enabled)
     assertEquals(SkipReason.BLANK_TUNNEL_NAME, state.applyNow.skipReason)
@@ -309,13 +338,25 @@ class HomeControllerTest {
   }
 
   @Test
-  fun enableControlCancelsPauseAndApplies() {
-    val (home, store, alarms) = controller(
+  fun enableControlCancelsPauseWithoutApplying() {
+    val store = InMemoryControlStore(
       StoredControl(enabled = false, pausedUntilEpochMillis = 99_000L, tunnelName = "office"),
+    )
+    val alarms = RecordingPauseAlarm()
+    val tunnel = RecordingTunnel()
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = alarms,
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
     )
     home.enableControl()
     assertEquals(true, store.read().enabled)
+    assertEquals(null, store.read().pausedUntilEpochMillis)
     assertEquals(1, alarms.cancelCount)
+    assertTrue(tunnel.commands.isEmpty())
   }
 
   @Test
@@ -520,19 +561,6 @@ class HomeControllerTest {
   fun controlSelectionFollowsDisabled() {
     val (home) = controller(StoredControl(enabled = false, tunnelName = "office"))
     assertEquals(ControlSelection.OFF, home.viewState().controlSelection)
-  }
-
-  @Test
-  fun watchingStartsWhenEnabledAndStopsWhenDisabled() {
-    val watching = RecordingWatching()
-    val (home) = controller(
-      StoredControl(enabled = false, tunnelName = "office"),
-      watching = watching,
-    )
-    home.enableControl()
-    assertEquals(true, watching.values.last())
-    home.disableControlForever()
-    assertEquals(false, watching.values.last())
   }
 
   @Test
@@ -1111,7 +1139,6 @@ class HomeControllerTest {
     ssids.write("office", setOf("Home"))
     val tunnel = RecordingTunnel()
     val alarms = RecordingPauseAlarm()
-    val watching = RecordingWatching()
     tunnel.send("office", TunnelCommand.UP)
     val home = HomeController(
       store = store,
@@ -1120,7 +1147,6 @@ class HomeControllerTest {
       pauseAlarms = alarms,
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       diagnostics = InMemoryDiagnosticStore(),
-      watching = watching,
       catalog = catalog,
       splitTunnels = splits,
       excludedSsids = ssids,
@@ -1132,7 +1158,6 @@ class HomeControllerTest {
     assertFalse(store.read().enabled)
     assertEquals(null, store.read().pausedUntilEpochMillis)
     assertTrue(alarms.cancelCount >= 1)
-    assertEquals(false, watching.values.last())
     assertTrue(catalog.names().isEmpty())
     assertEquals(StoredSplitTunnel(), splits.read("office"))
     assertEquals(emptySet(), home.excludedSsids("office"))

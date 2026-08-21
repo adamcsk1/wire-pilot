@@ -58,6 +58,14 @@
             android:textColor="@color/on_surface_muted"
             android:textSize="14sp" />
 
+          <TextView
+            android:id="@+id/statusPolicy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/on_surface"
+            android:textSize="14sp" />
+
           <com.google.android.material.button.MaterialButton
             android:id="@+id/applyNowButton"
             android:layout_width="match_parent"
@@ -72,14 +80,6 @@
             android:layout_marginTop="4dp"
             android:textColor="@color/on_surface_muted"
             android:textSize="13sp" />
-
-          <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/vpn_background_hint"
-            android:textColor="@color/on_surface_muted"
-            android:textSize="12sp" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 

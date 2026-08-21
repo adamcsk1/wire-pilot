@@ -4,7 +4,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import com.wirepilot.app.control.InventoryLink
-import com.wirepilot.app.control.SsidNormalizer
+import com.wirepilot.app.data.SsidNormalizer
 import com.wirepilot.app.control.SsidProbeLink
 import java.util.concurrent.ConcurrentHashMap
 

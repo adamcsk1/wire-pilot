@@ -1,9 +1,5 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.LogChannel
-import com.wirepilot.app.control.LogChannels
-import com.wirepilot.app.control.LogEvent
-
 object DiagnosticLogBuffer {
   const val MAX_ENTRIES = 150
 

@@ -20,6 +20,8 @@ import com.wirepilot.app.control.DurationFormatter
 import com.wirepilot.app.control.HomeController
 import com.wirepilot.app.control.HomeViewState
 import com.wirepilot.app.control.PauseOption
+import com.wirepilot.app.control.PolicyLine
+import com.wirepilot.app.control.PolicyLineKind
 import com.wirepilot.app.control.SsidBlocker
 import com.wirepilot.app.control.SsidReadiness
 import com.wirepilot.app.control.SsidReadinessEvaluator
@@ -33,6 +35,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var toolbar: MaterialToolbar
   private lateinit var statusTitle: TextView
   private lateinit var statusDetail: TextView
+  private lateinit var statusPolicy: TextView
   private lateinit var activeTunnelLabel: TextView
   private lateinit var manageTunnelsButton: MaterialButton
   private lateinit var controlSwitch: MaterialSwitch
@@ -53,7 +56,6 @@ class MainActivity : AppCompatActivity() {
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
   ) {
-    startWatchingIfNeeded()
     refreshUi()
   }
 
@@ -82,7 +84,6 @@ class MainActivity : AppCompatActivity() {
     supportActionBar?.setDisplayShowTitleEnabled(true)
     bindActions()
     requestMissingPermissions()
-    startWatchingIfNeeded()
     refreshUi()
   }
 
@@ -93,7 +94,6 @@ class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
-    startWatchingIfNeeded()
     refreshUi()
   }
 
@@ -125,6 +125,7 @@ class MainActivity : AppCompatActivity() {
     toolbar = findViewById(R.id.homeToolbar)
     statusTitle = findViewById(R.id.statusTitle)
     statusDetail = findViewById(R.id.statusDetail)
+    statusPolicy = findViewById(R.id.statusPolicy)
     activeTunnelLabel = findViewById(R.id.activeTunnelLabel)
     manageTunnelsButton = findViewById(R.id.manageTunnelsButton)
     controlSwitch = findViewById(R.id.controlSwitch)
@@ -145,7 +146,6 @@ class MainActivity : AppCompatActivity() {
       }
       if (checked) {
         controller.enableControl()
-        startWatchingIfNeeded()
         refreshUi()
         applyWithVpnConsent()
       } else {
@@ -180,6 +180,7 @@ class MainActivity : AppCompatActivity() {
       getString(R.string.active_tunnel, state.tunnelName)
     }
     bindStatus(state.status)
+    statusPolicy.text = policyLineText(state.policyLine)
     bindControlSwitch(state)
     bindVpnSwitch(state)
     bindApplyNow(state)
@@ -189,13 +190,7 @@ class MainActivity : AppCompatActivity() {
     when (status) {
       StatusPresentation.Watching -> {
         statusTitle.setText(R.string.status_watching)
-        statusDetail.setText(
-          if (AppPermissions.notificationsGranted(this)) {
-            R.string.status_watching_detail
-          } else {
-            R.string.status_watching_no_notification
-          },
-        )
+        statusDetail.setText(R.string.status_watching_detail)
       }
       StatusPresentation.Disabled -> {
         statusTitle.setText(R.string.status_disabled)
@@ -244,6 +239,20 @@ class MainActivity : AppCompatActivity() {
     vpnSwitch.isEnabled = hasTunnel && manual
     suppressVpnSwitch = false
     manualVpnHint.isVisible = hasTunnel && manual
+  }
+
+  private fun policyLineText(line: PolicyLine): String {
+    return when (line.kind) {
+      PolicyLineKind.CONTROL_OFF -> getString(R.string.policy_control_off)
+      PolicyLineKind.PAUSED -> getString(R.string.policy_paused)
+      PolicyLineKind.NO_TUNNEL -> getString(R.string.policy_no_tunnel)
+      PolicyLineKind.WIFI_UNREADABLE -> getString(R.string.policy_wifi_unreadable)
+      PolicyLineKind.WIFI_EXCLUDED_DOWN -> getString(R.string.policy_wifi_excluded, line.ssid)
+      PolicyLineKind.WIFI_UP -> getString(R.string.policy_wifi_up, line.tunnelName, line.ssid)
+      PolicyLineKind.WIFI_UP_LAST_KNOWN -> getString(R.string.policy_wifi_up_last_known, line.tunnelName, line.ssid)
+      PolicyLineKind.MOBILE_UP -> getString(R.string.policy_mobile_up, line.tunnelName)
+      PolicyLineKind.MOBILE_DOWN -> getString(R.string.policy_mobile_down)
+    }
   }
 
   private fun ssidReadiness(): SsidReadiness {
@@ -295,7 +304,6 @@ class MainActivity : AppCompatActivity() {
       .setItems(items) { _, which ->
         if (paused && which == 0) {
           controller.enableControl()
-          startWatchingIfNeeded()
           refreshUi()
           applyWithVpnConsent()
         } else {
@@ -307,14 +315,6 @@ class MainActivity : AppCompatActivity() {
       .show()
   }
 
-  private fun startWatchingIfNeeded() {
-    val state = controller.viewState()
-    val watching = state.controlSelection == ControlSelection.ON &&
-      state.tunnelName.isNotBlank() &&
-      AppPermissions.notificationsGranted(this)
-    (application as WirePilotApp).container.watching.sync(watching)
-  }
-
   private fun requestMissingPermissions() {
     val missing = buildList {
       if (!AppPermissions.nearbyWifiGranted(this@MainActivity)) {
@@ -323,9 +323,6 @@ class MainActivity : AppCompatActivity() {
       if (!AppPermissions.fineLocationGranted(this@MainActivity)) {
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
-      }
-      if (!AppPermissions.notificationsGranted(this@MainActivity)) {
-        add(Manifest.permission.POST_NOTIFICATIONS)
       }
     }
     if (missing.isNotEmpty()) {

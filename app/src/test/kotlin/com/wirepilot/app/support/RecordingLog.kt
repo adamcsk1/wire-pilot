@@ -1,7 +1,7 @@
 package com.wirepilot.app.support
 
 import com.wirepilot.app.control.DiagnosticLog
-import com.wirepilot.app.control.LogKind
+import com.wirepilot.app.data.LogKind
 
 class RecordingLog : DiagnosticLog {
   val entries = mutableListOf<Pair<LogKind, String>>()

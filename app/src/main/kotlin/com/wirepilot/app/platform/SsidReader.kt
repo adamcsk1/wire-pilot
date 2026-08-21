@@ -9,7 +9,7 @@ import com.wirepilot.app.control.InventoryMapper
 import com.wirepilot.app.control.LastKnownSsid
 import com.wirepilot.app.control.NetworkKind
 import com.wirepilot.app.control.NetworkSnapshot
-import com.wirepilot.app.control.SsidNormalizer
+import com.wirepilot.app.data.SsidNormalizer
 import com.wirepilot.app.control.SsidProbeFormatter
 import com.wirepilot.app.control.SsidReadiness
 

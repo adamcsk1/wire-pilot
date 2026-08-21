@@ -1,5 +1,7 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.SsidNormalizer
+
 data class InventoryLink(
   val wifi: Boolean,
   val cellular: Boolean,

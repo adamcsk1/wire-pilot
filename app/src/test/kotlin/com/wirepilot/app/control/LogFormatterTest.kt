@@ -1,5 +1,7 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.LogEvent
+import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.data.StoredControl
 import java.time.ZoneOffset
 import kotlin.test.Test
@@ -43,7 +45,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
     )
     assertEquals(
-      "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe")},${SsidRedactor.redact("Home")} tunnel=office retry=1/1 ssidSource=none",
+      "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe")},${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
       detail,
     )
   }
@@ -57,7 +59,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Skip(SkipReason.CONTROL_DISABLED),
     )
     assertEquals(
-      "trigger=apply apply=skip/CONTROL_DISABLED net=WIFI ssid=? tunnel=(blank) retry=1/1 ssidSource=none",
+      "trigger=apply apply=skip/CONTROL_DISABLED net=WIFI ssid=? tunnel=(blank) ssidSource=none",
       detail,
     )
   }
@@ -71,7 +73,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
     )
     assertEquals(
-      "trigger=apply-now apply=up via=go-backend net=MOBILE ssid=- tunnel=office retry=1/1 ssidSource=none",
+      "trigger=apply-now apply=up via=go-backend net=MOBILE ssid=- tunnel=office ssidSource=none",
       detail,
     )
   }
@@ -88,7 +90,7 @@ class LogFormatterTest {
   fun applyOmitsProbeAndRedactsSsid() {
     val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), probe = "nearby=T fine=T locOn=T")
     assertEquals(
-      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office retry=1/1 ssidSource=none",
+      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
       LogFormatter.applyDetail(
         trigger = "apply",
         control = StoredControl(tunnelName = "office"),

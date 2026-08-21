@@ -30,9 +30,89 @@
       android:padding="20dp">
 
       <com.google.android.material.card.MaterialCardView
+        android:id="@+id/requiredRightsCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_required_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_required_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_location_permission"
+            android:textColor="@color/on_surface" />
+
+          <TextView
+            android:id="@+id/locationPermissionStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_nearby_wifi"
+            android:textColor="@color/on_surface" />
+
+          <TextView
+            android:id="@+id/nearbyWifiStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/locationSettingsButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/open_location_settings" />
+
+          <TextView
+            android:id="@+id/locationSettingsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
         android:id="@+id/keepRunningCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         app:cardBackgroundColor="@color/surface_card"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
@@ -65,36 +145,98 @@
             style="@style/Widget.WirePilot.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:text="@string/open_app_info" />
+
+          <TextView
+            android:id="@+id/appInfoStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
 
           <com.google.android.material.button.MaterialButton
             android:id="@+id/batteryOptimizationButton"
             style="@style/Widget.WirePilot.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/open_battery_optimization" />
+
+          <TextView
+            android:id="@+id/batteryOptimizationStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
 
           <com.google.android.material.button.MaterialButton
             android:id="@+id/unusedAppsButton"
             style="@style/Widget.WirePilot.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/open_unused_apps" />
 
-          <com.google.android.material.button.MaterialButton
-            android:id="@+id/locationSettingsButton"
-            style="@style/Widget.WirePilot.Button.Outlined"
+          <TextView
+            android:id="@+id/unusedAppsStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/open_location_settings" />
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/alwaysOnCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/always_on_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/always_on_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
 
           <com.google.android.material.button.MaterialButton
             android:id="@+id/vpnSettingsButton"
             style="@style/Widget.WirePilot.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/open_vpn_settings" />
+
+          <TextView
+            android:id="@+id/vpnSettingsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="12sp" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 

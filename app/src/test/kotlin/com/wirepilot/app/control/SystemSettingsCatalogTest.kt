@@ -6,17 +6,26 @@ import kotlin.test.assertNull
 
 class SystemSettingsCatalogTest {
   @Test
-  fun orderIsAppInfoBatteryUnusedLocationVpn() {
+  fun groupsRequiredReliabilityAlwaysOn() {
+    assertEquals(listOf(SystemSettingsTarget.LOCATION), SystemSettingsCatalog.required())
     assertEquals(
       listOf(
         SystemSettingsTarget.APP_INFO,
         SystemSettingsTarget.BATTERY_OPTIMIZATION,
         SystemSettingsTarget.UNUSED_APPS,
-        SystemSettingsTarget.LOCATION,
-        SystemSettingsTarget.VPN,
       ),
+      SystemSettingsCatalog.reliability(),
+    )
+    assertEquals(listOf(SystemSettingsTarget.VPN), SystemSettingsCatalog.alwaysOn())
+    assertEquals(
+      SystemSettingsCatalog.required() + SystemSettingsCatalog.reliability() + SystemSettingsCatalog.alwaysOn(),
       SystemSettingsCatalog.targets(),
     )
+    assertEquals(SystemSettingsGroup.REQUIRED, SystemSettingsCatalog.group(SystemSettingsTarget.LOCATION))
+    assertEquals(SystemSettingsGroup.RELIABILITY, SystemSettingsCatalog.group(SystemSettingsTarget.APP_INFO))
+    assertEquals(SystemSettingsGroup.RELIABILITY, SystemSettingsCatalog.group(SystemSettingsTarget.BATTERY_OPTIMIZATION))
+    assertEquals(SystemSettingsGroup.RELIABILITY, SystemSettingsCatalog.group(SystemSettingsTarget.UNUSED_APPS))
+    assertEquals(SystemSettingsGroup.ALWAYS_ON, SystemSettingsCatalog.group(SystemSettingsTarget.VPN))
   }
 
   @Test

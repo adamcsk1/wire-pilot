@@ -1,5 +1,7 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.SsidNormalizer
+
 object NetworkSnapshotFactory {
   fun fromRawWifiSsids(
     rawSsids: List<String?>,

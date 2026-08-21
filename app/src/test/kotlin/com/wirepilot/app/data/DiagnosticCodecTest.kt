@@ -1,7 +1,7 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.LogEvent
-import com.wirepilot.app.control.LogKind
+import com.wirepilot.app.data.LogEvent
+import com.wirepilot.app.data.LogKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

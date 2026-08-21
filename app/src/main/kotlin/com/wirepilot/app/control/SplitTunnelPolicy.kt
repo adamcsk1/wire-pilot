@@ -1,10 +1,6 @@
 package com.wirepilot.app.control
 
-enum class SplitTunnelMode {
-  ALL_APPS,
-  EXCLUDE_APPS,
-  INCLUDE_APPS,
-}
+import com.wirepilot.app.data.SplitTunnelMode
 
 data class SplitTunnelSelection(
   val excludedPackages: Set<String>,

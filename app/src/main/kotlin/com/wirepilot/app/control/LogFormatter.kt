@@ -1,5 +1,6 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.LogEvent
 import com.wirepilot.app.data.StoredControl
 import java.time.Instant
 import java.time.ZoneId
@@ -25,8 +26,6 @@ object LogFormatter {
     control: StoredControl,
     network: NetworkSnapshot,
     decision: PolicyDecision,
-    attempt: Int = 1,
-    maxAttempts: Int = 1,
   ): String {
     val apply = when (decision) {
       is PolicyDecision.Skip -> "skip/${decision.reason.name}"
@@ -37,7 +36,7 @@ object LogFormatter {
       is PolicyDecision.Skip -> control.tunnelName
     }
     val tunnel = target.ifBlank { "(blank)" }
-    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel retry=$attempt/$maxAttempts ssidSource=${network.ssidSource}"
+    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel ssidSource=${network.ssidSource}"
   }
 
   fun networkChangeDetail(network: NetworkSnapshot): String {

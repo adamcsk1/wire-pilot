@@ -38,8 +38,12 @@ class FileTunnelCatalog(
       val plaintext = runCatching { file.readText() }.getOrNull()
       if (plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null) {
         siblingTemp(file).delete()
-        runCatching { writeEncrypted(file, plaintext) }
-        return plaintext
+        return try {
+          writeEncrypted(file, plaintext)
+          plaintext
+        } catch (_: IOException) {
+          null
+        }
       }
       recoverLegacyTempAad(file)?.let { return it }
     }

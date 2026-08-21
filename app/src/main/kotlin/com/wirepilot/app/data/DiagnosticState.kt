@@ -1,7 +1,5 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.LogEvent
-
 data class DiagnosticState(
   val policyEnabled: Boolean = false,
   val vpnEnabled: Boolean = false,

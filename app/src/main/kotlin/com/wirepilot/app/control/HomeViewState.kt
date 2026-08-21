@@ -1,5 +1,7 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.SplitTunnelMode
+
 data class HomeViewState(
   val tunnelName: String,
   val importedTunnels: List<String> = emptyList(),
@@ -8,6 +10,7 @@ data class HomeViewState(
   val splitTunnelPackages: Set<String> = emptySet(),
   val excludedSsids: List<String>,
   val status: StatusPresentation,
+  val policyLine: PolicyLine,
   val applyNow: ApplyNowView,
   val loggingEnabled: Boolean,
   val policyLoggingEnabled: Boolean = false,

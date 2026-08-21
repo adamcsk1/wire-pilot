@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.card.MaterialCardView
 import com.wirepilot.app.control.HomeController
-import com.wirepilot.app.control.LogChannel
+import com.wirepilot.app.data.LogChannel
 import com.wirepilot.app.ui.SystemBarInsets
 
 class LogActivity : AppCompatActivity() {

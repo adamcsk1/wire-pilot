@@ -1,4 +1,4 @@
-package com.wirepilot.app.control
+package com.wirepilot.app.data
 
 enum class LogKind {
   BOOT,

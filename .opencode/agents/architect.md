@@ -12,18 +12,21 @@ You are the architecture advisor for WirePilot.
 | Package | Purpose |
 |---------|---------|
 | `control` | Pure policy, pause, debounce, coordinators, home controller |
-| `data` | `StoredControl`, `ControlStore`, `ControlCodec` |
-| `platform` | SharedPreferences, ConnectivityManager, AlarmManager, broadcasts |
-| `receiver` | Boot, network, pause receivers |
-| UI | `MainActivity` and resources |
+| `data` | Store interfaces, codecs, and persisted types (`StoredControl`, `SplitTunnelMode`, `LogEvent`, `SsidNormalizer`) |
+| `platform` | SharedPreferences, EncryptedFile, ConnectivityManager, AlarmManager, `GoBackend` |
+| `receiver` | Boot, network, pause, debounce receivers |
+| UI | Activities and resources |
 
 ## Hard constraints
 
-- Official WireGuard broadcasts only
-- No tunnel library
-- No foreground service
+- Embed official `com.wireguard.android:tunnel` (`GoBackend` + `GoBackend.VpnService`)
+- Control the active imported tunnel through `GoBackend.setState`
+- No official-app broadcasts
+- No foreground service, polling, or battery-optimization prompt
 - SSID from all Wi-Fi networks
 - Android glue stays thin so JVM tests can cover decisions
+- Never persist plaintext private keys
+- Never `Log.d` policy, SSID, or probe details
 
 ## Your job
 

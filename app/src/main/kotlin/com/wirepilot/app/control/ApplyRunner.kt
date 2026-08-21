@@ -1,6 +1,7 @@
 package com.wirepilot.app.control
 
 import com.wirepilot.app.data.ControlStore
+import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.data.StoredControl
 
 class ApplyRunner(
@@ -11,7 +12,7 @@ class ApplyRunner(
   private val log: DiagnosticLog = NoOpDiagnosticLog,
   private val excludedSsidsFor: (String) -> Set<String>? = { null },
 ) {
-  fun applyNow(trigger: String = "apply"): Boolean {
+  fun applyNow(trigger: String = "apply") {
     val nowMillis = clock()
     val stored = store.read()
     val resolved = ControlModeResolver.resolve(stored, nowMillis)
@@ -19,16 +20,13 @@ class ApplyRunner(
       store.write(resolved)
     }
     val snapshot = network()
-    val attempt = UnreadableRetryPolicy.attemptNumber(trigger)
     val forPolicy = resolved.copy(
       excludedSsids = excludedSsidsFor(resolved.tunnelName) ?: resolved.excludedSsids,
     )
     val decision = PolicyEvaluator.decide(forPolicy, snapshot)
-    val kind = when {
-      trigger == "apply-now" -> LogKind.APPLY_NOW
-      trigger == DebounceTriggers.DEBOUNCE ||
-        trigger == DebounceTriggers.PROCESS_START ||
-        UnreadableRetryPolicy.isRetryTrigger(trigger) -> LogKind.DEBOUNCE
+    val kind = when (trigger) {
+      "apply-now" -> LogKind.APPLY_NOW
+      DebounceTriggers.DEBOUNCE, DebounceTriggers.PROCESS_START -> LogKind.DEBOUNCE
       else -> LogKind.APPLY
     }
     log.record(
@@ -38,8 +36,6 @@ class ApplyRunner(
         control = forPolicy,
         network = snapshot,
         decision = decision,
-        attempt = attempt,
-        maxAttempts = UnreadableRetryPolicy.MAX_ATTEMPTS,
       ),
     )
     when (decision) {
@@ -51,7 +47,6 @@ class ApplyRunner(
         }
       }
     }
-    return UnreadableRetryPolicy.shouldRetry(trigger, decision)
   }
 
   fun force(command: TunnelCommand, trigger: String, tunnelName: String = store.read().tunnelName) {

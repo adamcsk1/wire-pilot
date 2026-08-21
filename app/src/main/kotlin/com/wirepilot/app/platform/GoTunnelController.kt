@@ -3,7 +3,7 @@ package com.wirepilot.app.platform
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wirepilot.app.control.DiagnosticLog
-import com.wirepilot.app.control.LogKind
+import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.control.NoOpDiagnosticLog
 import com.wirepilot.app.control.TunnelCommand
 import com.wirepilot.app.control.TunnelCommands

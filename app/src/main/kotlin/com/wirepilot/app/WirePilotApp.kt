@@ -2,7 +2,7 @@ package com.wirepilot.app
 
 import android.app.Application
 import com.wireguard.android.backend.GoBackend
-import com.wirepilot.app.control.LogKind
+import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.platform.AppContainer
 import com.wirepilot.app.platform.AppLockLifecycle
 

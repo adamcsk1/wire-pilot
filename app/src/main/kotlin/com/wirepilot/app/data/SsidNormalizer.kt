@@ -1,4 +1,4 @@
-package com.wirepilot.app.control
+package com.wirepilot.app.data
 
 object SsidNormalizer {
   private const val UNKNOWN_SSID = "<unknown ssid>"

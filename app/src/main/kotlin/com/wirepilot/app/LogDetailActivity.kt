@@ -14,7 +14,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.wirepilot.app.control.HomeController
-import com.wirepilot.app.control.LogChannel
+import com.wirepilot.app.data.LogChannel
 import com.wirepilot.app.ui.SystemBarInsets
 
 class LogDetailActivity : AppCompatActivity() {

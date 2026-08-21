@@ -1,9 +1,5 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.LogChannel
-import com.wirepilot.app.control.LogEvent
-import com.wirepilot.app.control.LogKind
-
 object DiagnosticCodec {
   fun encode(state: DiagnosticState): String {
     val header = "${flag(state.policyEnabled)}\t${flag(state.vpnEnabled)}\t${flag(state.usageEnabled)}"

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 
 object AppPermissions {
@@ -23,7 +24,8 @@ object AppPermissions {
     return granted(context, Manifest.permission.ACCESS_FINE_LOCATION)
   }
 
-  fun notificationsGranted(context: Context): Boolean {
-    return granted(context, Manifest.permission.POST_NOTIFICATIONS)
+  fun batteryUnrestricted(context: Context): Boolean {
+    return context.getSystemService(PowerManager::class.java)
+      .isIgnoringBatteryOptimizations(context.packageName)
   }
 }

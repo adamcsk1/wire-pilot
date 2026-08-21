@@ -1,6 +1,6 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.SplitTunnelMode
+import com.wirepilot.app.data.SplitTunnelMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

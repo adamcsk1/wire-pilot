@@ -13,7 +13,7 @@ import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.wirepilot.app.control.HomeController
-import com.wirepilot.app.control.SplitTunnelMode
+import com.wirepilot.app.data.SplitTunnelMode
 import com.wirepilot.app.control.TunnelRow
 import com.wirepilot.app.platform.ConfigSplitMerger
 import com.wirepilot.app.platform.ConfigZipIO

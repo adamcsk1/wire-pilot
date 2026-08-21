@@ -1,7 +1,5 @@
 package com.wirepilot.app.data
 
-import com.wirepilot.app.control.SplitTunnelMode
-
 data class StoredSplitTunnel(
   val mode: SplitTunnelMode = SplitTunnelMode.ALL_APPS,
   val packages: Set<String> = emptySet(),
