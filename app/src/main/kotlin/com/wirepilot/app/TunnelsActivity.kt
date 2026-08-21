@@ -1,6 +1,5 @@
 package com.wirepilot.app
 
-import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
@@ -106,12 +105,26 @@ class TunnelsActivity : AppCompatActivity() {
   }
 
   private fun statusText(row: TunnelRow): String {
-    return when {
+    val base = when {
       row.selected && row.up -> getString(R.string.tunnel_status_default_connected)
       row.selected -> getString(R.string.tunnel_status_default_off)
       row.up -> getString(R.string.tunnel_status_connected)
       else -> getString(R.string.tunnel_status_off)
     }
+    val extras = buildList {
+      when (row.splitMode) {
+        SplitTunnelMode.EXCLUDE_APPS -> add(getString(R.string.tunnel_status_exclude_apps, row.splitAppCount))
+        SplitTunnelMode.INCLUDE_APPS -> add(getString(R.string.tunnel_status_include_apps, row.splitAppCount))
+        SplitTunnelMode.ALL_APPS -> Unit
+      }
+      if (row.mobile) {
+        add(getString(R.string.tunnel_status_mobile))
+      }
+      if (row.excludedSsidCount > 0) {
+        add(getString(R.string.tunnel_status_skip_ssids, row.excludedSsidCount))
+      }
+    }
+    return if (extras.isEmpty()) base else "$base · ${extras.joinToString(" · ")}"
   }
 
   private fun showRowMenu(row: TunnelRow) {
@@ -120,6 +133,7 @@ class TunnelsActivity : AppCompatActivity() {
         add(getString(R.string.set_default_tunnel))
       }
       add(getString(R.string.split_tunnel))
+      add(getString(R.string.skip_networks))
       add(getString(R.string.delete_tunnel))
     }
     AlertDialog.Builder(this)
@@ -131,7 +145,10 @@ class TunnelsActivity : AppCompatActivity() {
             controller.selectImportedTunnel(row.name)
             refreshUi()
           }
-          getString(R.string.split_tunnel) -> showSplitTunnelDialog(row.name)
+          getString(R.string.split_tunnel) ->
+            startActivity(SplitTunnelActivity.intent(this, row.name))
+          getString(R.string.skip_networks) ->
+            startActivity(TunnelNetworksActivity.intent(this, row.name))
           getString(R.string.delete_tunnel) -> confirmDelete(row.name)
         }
       }
@@ -228,59 +245,5 @@ class TunnelsActivity : AppCompatActivity() {
       }
     }
     return uri.lastPathSegment.orEmpty()
-  }
-
-  private fun showSplitTunnelDialog(tunnelName: String) {
-    val settings = controller.splitSettings(tunnelName)
-    val modes = arrayOf(
-      getString(R.string.split_all_apps),
-      getString(R.string.split_exclude_apps),
-      getString(R.string.split_include_apps),
-    )
-    val current = when (settings.mode) {
-      SplitTunnelMode.ALL_APPS -> 0
-      SplitTunnelMode.EXCLUDE_APPS -> 1
-      SplitTunnelMode.INCLUDE_APPS -> 2
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.split_tunnel)
-      .setSingleChoiceItems(modes, current) { dialog, which ->
-        dialog.dismiss()
-        val mode = when (which) {
-          1 -> SplitTunnelMode.EXCLUDE_APPS
-          2 -> SplitTunnelMode.INCLUDE_APPS
-          else -> SplitTunnelMode.ALL_APPS
-        }
-        if (mode == SplitTunnelMode.ALL_APPS) {
-          controller.setSplitTunnel(mode, emptySet(), tunnelName)
-          refreshUi()
-        } else {
-          showAppPicker(tunnelName, mode, settings.packages)
-        }
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
-  }
-
-  private fun showAppPicker(tunnelName: String, mode: SplitTunnelMode, selected: Set<String>) {
-    val apps = packageManager.getInstalledApplications(0)
-      .filter { info -> info.flags and ApplicationInfo.FLAG_SYSTEM == 0 || packageManager.getLaunchIntentForPackage(info.packageName) != null }
-      .sortedBy { info -> packageManager.getApplicationLabel(info).toString() }
-    val labels = apps.map { info -> "${packageManager.getApplicationLabel(info)} (${info.packageName})" }.toTypedArray()
-    val checked = BooleanArray(apps.size) { index -> apps[index].packageName in selected }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.split_tunnel)
-      .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
-        checked[which] = isChecked
-      }
-      .setPositiveButton(R.string.add) { _, _ ->
-        val packages = apps.mapIndexedNotNull { index, info ->
-          if (checked[index]) info.packageName else null
-        }.toSet()
-        controller.setSplitTunnel(mode, packages, tunnelName)
-        refreshUi()
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
   }
 }

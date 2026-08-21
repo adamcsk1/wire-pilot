@@ -4,11 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.net.VpnService
 import android.os.Bundle
-import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,18 +35,12 @@ class MainActivity : AppCompatActivity() {
   private lateinit var statusDetail: TextView
   private lateinit var activeTunnelLabel: TextView
   private lateinit var manageTunnelsButton: MaterialButton
-  private lateinit var ssidList: LinearLayout
-  private lateinit var emptySsids: TextView
-  private lateinit var addCurrentButton: MaterialButton
-  private lateinit var addSsidButton: MaterialButton
-  private lateinit var connectOnMobileSwitch: MaterialSwitch
   private lateinit var controlSwitch: MaterialSwitch
   private lateinit var pauseButton: MaterialButton
   private lateinit var vpnSwitch: MaterialSwitch
   private lateinit var applyNowButton: MaterialButton
   private lateinit var applyNowDetail: TextView
   private lateinit var manualVpnHint: TextView
-  private var suppressMobileSwitch = false
   private var suppressControlSwitch = false
   private var suppressVpnSwitch = false
   private var pendingAfterVpnPrepare = "apply"
@@ -136,11 +127,6 @@ class MainActivity : AppCompatActivity() {
     statusDetail = findViewById(R.id.statusDetail)
     activeTunnelLabel = findViewById(R.id.activeTunnelLabel)
     manageTunnelsButton = findViewById(R.id.manageTunnelsButton)
-    ssidList = findViewById(R.id.ssidList)
-    emptySsids = findViewById(R.id.emptySsids)
-    addCurrentButton = findViewById(R.id.addCurrentButton)
-    addSsidButton = findViewById(R.id.addSsidButton)
-    connectOnMobileSwitch = findViewById(R.id.connectOnMobileSwitch)
     controlSwitch = findViewById(R.id.controlSwitch)
     pauseButton = findViewById(R.id.pauseButton)
     vpnSwitch = findViewById(R.id.vpnSwitch)
@@ -152,15 +138,6 @@ class MainActivity : AppCompatActivity() {
   private fun bindActions() {
     manageTunnelsButton.setOnClickListener {
       startActivity(Intent(this, TunnelsActivity::class.java))
-    }
-    addCurrentButton.setOnClickListener { onAddCurrentOrFixSsid() }
-    addSsidButton.setOnClickListener { showAddSsidDialog() }
-    connectOnMobileSwitch.setOnCheckedChangeListener { _, checked ->
-      if (suppressMobileSwitch) {
-        return@setOnCheckedChangeListener
-      }
-      controller.setConnectOnMobile(checked)
-      refreshUi()
     }
     controlSwitch.setOnCheckedChangeListener { _, checked ->
       if (suppressControlSwitch) {
@@ -204,11 +181,8 @@ class MainActivity : AppCompatActivity() {
     }
     bindStatus(state.status)
     bindControlSwitch(state)
-    bindConnectOnMobile(state.connectOnMobile)
     bindVpnSwitch(state)
     bindApplyNow(state)
-    bindSsids(state.excludedSsids)
-    bindSsidAction(state)
   }
 
   private fun bindStatus(status: StatusPresentation) {
@@ -272,79 +246,6 @@ class MainActivity : AppCompatActivity() {
     manualVpnHint.isVisible = hasTunnel && manual
   }
 
-  private fun bindConnectOnMobile(enabled: Boolean) {
-    suppressMobileSwitch = true
-    connectOnMobileSwitch.isChecked = enabled
-    suppressMobileSwitch = false
-  }
-
-  private fun bindSsids(ssids: List<String>) {
-    ssidList.removeAllViews()
-    emptySsids.isVisible = ssids.isEmpty()
-    ssids.forEach { ssid ->
-      val row = layoutInflater.inflate(R.layout.item_ssid, ssidList, false)
-      row.findViewById<TextView>(R.id.ssidName).text = ssid
-      row.findViewById<MaterialButton>(R.id.removeSsidButton).setOnClickListener {
-        controller.removeExcludedSsid(ssid)
-        refreshUi()
-      }
-      ssidList.addView(row)
-    }
-  }
-
-  private fun bindSsidAction(state: HomeViewState) {
-    val snapshot = (application as WirePilotApp).container.ssidReader.snapshot()
-    val currentSsid = snapshot.wifiSsids.firstOrNull()
-    if (currentSsid != null) {
-      addCurrentButton.isEnabled = currentSsid !in state.excludedSsids
-      addCurrentButton.text = getString(R.string.add_current_ssid, currentSsid)
-      return
-    }
-    if (!snapshot.connectedToWifi) {
-      addCurrentButton.isEnabled = false
-      addCurrentButton.text = getString(R.string.add_current_ssid_unavailable)
-      return
-    }
-    when (ssidBlockerWhenUnreadable()) {
-      SsidBlocker.NEARBY_WIFI_PERMISSION -> {
-        addCurrentButton.isEnabled = true
-        addCurrentButton.text = getString(R.string.grant_nearby_wifi)
-      }
-      SsidBlocker.FINE_LOCATION_PERMISSION -> {
-        addCurrentButton.isEnabled = true
-        addCurrentButton.text = getString(R.string.grant_fine_location)
-      }
-      SsidBlocker.LOCATION_OFF -> {
-        addCurrentButton.isEnabled = true
-        addCurrentButton.text = getString(R.string.turn_on_location)
-      }
-      SsidBlocker.UNKNOWN_NETWORK -> {
-        addCurrentButton.isEnabled = false
-        addCurrentButton.text = getString(R.string.ssid_unknown_network)
-      }
-    }
-  }
-
-  private fun onAddCurrentOrFixSsid() {
-    val ssid = currentReadableSsid()
-    if (ssid != null) {
-      controller.addExcludedSsid(ssid)
-      refreshUi()
-      return
-    }
-    when (ssidBlockerWhenUnreadable()) {
-      SsidBlocker.NEARBY_WIFI_PERMISSION ->
-        permissionLauncher.launch(arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES))
-      SsidBlocker.FINE_LOCATION_PERMISSION ->
-        permissionLauncher.launch(
-          arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-        )
-      SsidBlocker.LOCATION_OFF ->
-        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-      SsidBlocker.UNKNOWN_NETWORK -> Unit
-    }
-  }
-
   private fun ssidReadiness(): SsidReadiness {
     return SsidReadiness(
       nearbyWifiGranted = AppPermissions.nearbyWifiGranted(this),
@@ -364,22 +265,6 @@ class MainActivity : AppCompatActivity() {
       SsidBlocker.LOCATION_OFF -> getString(R.string.apply_now_need_location)
       SsidBlocker.UNKNOWN_NETWORK -> getString(R.string.ssid_unknown_network)
     }
-  }
-
-  private fun showAddSsidDialog() {
-    val input = EditText(this).apply {
-      hint = getString(R.string.ssid_hint)
-      setSingleLine()
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.add_ssid_title)
-      .setView(input)
-      .setPositiveButton(R.string.add) { _, _ ->
-        controller.addExcludedSsid(input.text.toString())
-        refreshUi()
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
   }
 
   private fun showPauseMenu() {
@@ -446,10 +331,6 @@ class MainActivity : AppCompatActivity() {
     if (missing.isNotEmpty()) {
       permissionLauncher.launch(missing.toTypedArray())
     }
-  }
-
-  private fun currentReadableSsid(): String? {
-    return (application as WirePilotApp).container.ssidReader.snapshot().wifiSsids.firstOrNull()
   }
 
   private fun applyWithVpnConsent() {

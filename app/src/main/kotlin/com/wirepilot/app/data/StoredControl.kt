@@ -5,5 +5,5 @@ data class StoredControl(
   val pausedUntilEpochMillis: Long? = null,
   val tunnelName: String = "",
   val excludedSsids: Set<String> = emptySet(),
-  val connectOnMobile: Boolean = true,
+  val mobileTunnelName: String = "",
 )

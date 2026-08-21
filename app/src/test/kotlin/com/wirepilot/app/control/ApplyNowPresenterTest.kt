@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class ApplyNowPresenterTest {
   @Test
   fun applyWhenPolicyCanRun() {
-    val view = ApplyNowPresenter.present(PolicyDecision.Apply(TunnelCommand.UP))
+    val view = ApplyNowPresenter.present(PolicyDecision.Apply(TunnelCommand.UP, "office"))
     assertEquals(ApplyNowAction.APPLY, view.action)
     assertTrue(view.enabled)
     assertNull(view.skipReason)
@@ -17,7 +17,7 @@ class ApplyNowPresenterTest {
 
   @Test
   fun applyWhenPolicyWouldDisconnect() {
-    val view = ApplyNowPresenter.present(PolicyDecision.Apply(TunnelCommand.DOWN))
+    val view = ApplyNowPresenter.present(PolicyDecision.Apply(TunnelCommand.DOWN, "office"))
     assertEquals(ApplyNowAction.APPLY, view.action)
     assertTrue(view.enabled)
   }

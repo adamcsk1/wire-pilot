@@ -23,4 +23,13 @@ class EmptyStoresTest {
     EmptySplitTunnelStore.delete("office")
     assertEquals(StoredSplitTunnel(), EmptySplitTunnelStore.read("office"))
   }
+
+  @Test
+  fun emptyExcludedSsidStoreIsNoOp() {
+    assertEquals(emptySet(), EmptyExcludedSsidStore.read("office"))
+    EmptyExcludedSsidStore.write("office", setOf("Home"))
+    EmptyExcludedSsidStore.delete("office")
+    assertEquals(false, EmptyExcludedSsidStore.exists("office"))
+    assertEquals(emptySet(), EmptyExcludedSsidStore.read("office"))
+  }
 }

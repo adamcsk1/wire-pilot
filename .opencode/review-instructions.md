@@ -22,7 +22,7 @@ Issue description and why it matters. Suggested fix.
 
 ## Must Review
 
-- Policy, debounce, boot, and pause behavior. Off/Pause with a selected tunnel is `DOWN`. Connect-on-mobile off is `DOWN`. Last-known SSID only applies within 60s.
+- Policy, debounce, boot, and pause behavior. Off/Pause with a selected tunnel is `DOWN` (also downs the mobile tunnel if different). Cellular uses the one designated mobile tunnel, or `DOWN` if none. Last-known SSID only applies within 60s.
 - Official tunnel library usage (`GoBackend.setState`), ZIP/`.conf` import-export, EncryptedFile key storage, and split-tunnel exclude XOR include.
 - SSID reading across all Wi-Fi networks, not only the active network.
 - Battery and process lifetime: no foreground service, no polling, no battery-optimization prompt.

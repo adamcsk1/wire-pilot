@@ -60,6 +60,17 @@
       android:parentActivityName=".TunnelsActivity"
       android:windowSoftInputMode="stateHidden|adjustResize" />
 
+    <activity
+      android:name=".SplitTunnelActivity"
+      android:exported="false"
+      android:parentActivityName=".TunnelsActivity"
+      android:windowSoftInputMode="stateHidden|adjustResize" />
+
+    <activity
+      android:name=".TunnelNetworksActivity"
+      android:exported="false"
+      android:parentActivityName=".TunnelsActivity" />
+
     <service
       android:name=".platform.WatchingService"
       android:exported="false"

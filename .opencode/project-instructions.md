@@ -16,8 +16,9 @@ Policy:
 - Blank / no imported tunnel: do nothing
 - On Wi-Fi with unreadable SSID: do nothing (unless last-known SSID is within 60s)
 - On Wi-Fi and SSID is excluded: `DOWN`
-- Cellular / other with connect-on-mobile off: `DOWN`
-- Every other case, including cellular: `UP`
+- Cellular / other: `UP` the designated mobile tunnel, or `DOWN` if none
+- Off/Pause: `DOWN` the default tunnel and the mobile tunnel if they differ
+- Every other Wi-Fi case: `UP` the default tunnel
 - Read SSID from every `TRANSPORT_WIFI` network, never only `activeNetwork`
 - Network change and boot wait 3 seconds, then apply once
 - Timed pause expiry applies immediately

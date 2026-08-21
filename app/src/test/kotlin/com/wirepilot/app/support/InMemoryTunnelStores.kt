@@ -1,5 +1,6 @@
 package com.wirepilot.app.support
 
+import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.StoredSplitTunnel
 import com.wirepilot.app.data.TunnelCatalog
@@ -35,5 +36,25 @@ class InMemorySplitTunnelStore : SplitTunnelStore {
 
   override fun delete(tunnelName: String) {
     values.remove(tunnelName)
+  }
+}
+
+class InMemoryExcludedSsidStore : ExcludedSsidStore {
+  private val values = mutableMapOf<String, Set<String>>()
+
+  override fun read(tunnelName: String): Set<String> {
+    return values[tunnelName] ?: emptySet()
+  }
+
+  override fun write(tunnelName: String, ssids: Set<String>) {
+    values[tunnelName] = ssids
+  }
+
+  override fun delete(tunnelName: String) {
+    values.remove(tunnelName)
+  }
+
+  override fun exists(tunnelName: String): Boolean {
+    return tunnelName in values
   }
 }

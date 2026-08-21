@@ -40,7 +40,7 @@ class LogFormatterTest {
       trigger = "debounce",
       control = StoredControl(tunnelName = "office"),
       network = NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe", "Home")),
-      decision = PolicyDecision.Apply(TunnelCommand.DOWN),
+      decision = PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
     )
     assertEquals(
       "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe")},${SsidRedactor.redact("Home")} tunnel=office retry=1/1 ssidSource=none",
@@ -68,7 +68,7 @@ class LogFormatterTest {
       trigger = "apply-now",
       control = StoredControl(tunnelName = "office"),
       network = NetworkSnapshot(NetworkKind.MOBILE),
-      decision = PolicyDecision.Apply(TunnelCommand.UP),
+      decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
     )
     assertEquals(
       "trigger=apply-now apply=up via=go-backend net=MOBILE ssid=- tunnel=office retry=1/1 ssidSource=none",
@@ -93,7 +93,7 @@ class LogFormatterTest {
         trigger = "apply",
         control = StoredControl(tunnelName = "office"),
         network = network,
-        decision = PolicyDecision.Apply(TunnelCommand.UP),
+        decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
       ),
     )
     assertEquals(

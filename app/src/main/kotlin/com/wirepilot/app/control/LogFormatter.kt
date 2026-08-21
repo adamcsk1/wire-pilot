@@ -32,7 +32,11 @@ object LogFormatter {
       is PolicyDecision.Skip -> "skip/${decision.reason.name}"
       is PolicyDecision.Apply -> "${decision.command.name.lowercase()} via=go-backend"
     }
-    val tunnel = control.tunnelName.ifBlank { "(blank)" }
+    val target = when (decision) {
+      is PolicyDecision.Apply -> decision.tunnelName
+      is PolicyDecision.Skip -> control.tunnelName
+    }
+    val tunnel = target.ifBlank { "(blank)" }
     return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel retry=$attempt/$maxAttempts ssidSource=${network.ssidSource}"
   }
 

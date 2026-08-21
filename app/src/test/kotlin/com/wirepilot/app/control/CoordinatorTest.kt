@@ -33,7 +33,7 @@ class CoordinatorTest {
   @Test
   fun pauseExpiryAppliesImmediately() {
     val store = InMemoryControlStore(
-      StoredControl(enabled = false, pausedUntilEpochMillis = 1L, tunnelName = "office"),
+      StoredControl(enabled = false, pausedUntilEpochMillis = 1L, tunnelName = "office", mobileTunnelName = "office"),
     )
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(

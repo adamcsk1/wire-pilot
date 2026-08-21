@@ -17,7 +17,7 @@ You are the primary coding agent for WirePilot — a single-purpose Android VPN 
 - Network change and boot debounce is 3 seconds
 - Last-known SSID TTL is 60 seconds
 - Pause expiry applies immediately
-- Off/Pause or connect-on-mobile off is `DOWN` when a tunnel is selected
+- Off/Pause downs the default and mobile tunnels; cellular uses the one designated mobile tunnel
 - JaCoCo instruction coverage for `control` and `data` stays at or above 95%
 - AGP 9+ provides Kotlin; do not add `org.jetbrains.kotlin.android` unless required
 

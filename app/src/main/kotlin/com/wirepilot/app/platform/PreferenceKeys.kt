@@ -8,7 +8,10 @@ object PreferenceKeys {
   const val EXCLUDED_SSIDS = "excluded_ssids"
   const val DIAGNOSTICS = "diagnostics"
   const val CONNECT_ON_MOBILE = "connect_on_mobile"
+  const val MOBILE_TUNNEL_NAME = "mobile_tunnel_name"
   const val DEBOUNCE_SCHEDULED_AT = "debounce_scheduled_at"
   const val LAST_KNOWN_SSID = "last_known_ssid"
   const val SPLIT_TUNNEL_PREFIX = "split_tunnel_"
+  const val EXCLUDED_SSID_PREFIX = "excluded_ssids_"
+  const val EXCLUDED_SSIDS_MIGRATED = "ssid_lists_migrated"
 }

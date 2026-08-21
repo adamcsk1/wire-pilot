@@ -17,6 +17,7 @@ data class HomeViewState(
   val vpnLogText: String = "",
   val logCopyText: String,
   val connectOnMobile: Boolean,
+  val mobileTunnelName: String = "",
   val controlSelection: ControlSelection,
   val vpnConnected: Boolean = false,
 )

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/networksToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:navigationIcon="?attr/homeAsUpIndicator"
+    app:navigationIconTint="@color/on_surface"
+    app:title="@string/ssid_section"
+    app:titleTextColor="@color/on_surface" />
+
+  <ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="20dp">
+
+      <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/connectOnMobileSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/connect_on_mobile"
+        android:textColor="@color/on_surface" />
+
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/connect_on_mobile_hint"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="13sp" />
+
+      <TextView
+        android:id="@+id/emptySsids"
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ssid_empty"
+        android:textColor="@color/on_surface_muted" />
+
+      <LinearLayout
+        android:id="@+id/ssidList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/addCurrentButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/add_current_ssid_unavailable" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/addSsidButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/add_ssid_manual" />
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>

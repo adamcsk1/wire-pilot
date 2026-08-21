@@ -34,7 +34,7 @@ class UnreadableRetryPolicyTest {
   @Test
   fun doesNotRetrySuccessfulApply() {
     assertFalse(
-      UnreadableRetryPolicy.shouldRetry("debounce", PolicyDecision.Apply(TunnelCommand.UP)),
+      UnreadableRetryPolicy.shouldRetry("debounce", PolicyDecision.Apply(TunnelCommand.UP, "office")),
     )
   }
 

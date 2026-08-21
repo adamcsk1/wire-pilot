@@ -139,52 +139,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/manage_tunnels" />
-
-      <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/ssid_section"
-        android:textColor="@color/on_surface"
-        android:textStyle="bold" />
-
-      <TextView
-        android:id="@+id/emptySsids"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/ssid_empty"
-        android:textColor="@color/on_surface_muted" />
-
-      <LinearLayout
-        android:id="@+id/ssidList"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="vertical" />
-
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/addCurrentButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/add_current_ssid_unavailable" />
-
-      <com.google.android.material.button.MaterialButton
-        android:id="@+id/addSsidButton"
-        style="@style/Widget.WirePilot.Button.Outlined"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/add_ssid_manual" />
-
-      <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/connectOnMobileSwitch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/connect_on_mobile"
-        android:textColor="@color/on_surface" />
     </LinearLayout>
   </ScrollView>
 </LinearLayout>

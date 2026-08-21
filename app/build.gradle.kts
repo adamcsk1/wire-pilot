@@ -175,6 +175,7 @@ dependencies {
   implementation("androidx.core:core-ktx:1.19.0")
   implementation("androidx.appcompat:appcompat:1.8.0")
   implementation("com.google.android.material:material:1.14.0")
+  implementation("androidx.recyclerview:recyclerview:1.4.0")
   implementation("com.wireguard.android:tunnel:1.0.20260102")
   implementation("androidx.security:security-crypto:1.1.0")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")

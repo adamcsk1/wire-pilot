@@ -57,6 +57,15 @@
   <string name="import_tunnel">Import ZIP or .conf</string>
   <string name="export_tunnels">Export ZIP</string>
   <string name="split_tunnel">Split tunnel</string>
+  <string name="split_tunnel_for">Split tunnel · %1$s</string>
+  <string name="split_search">Search apps</string>
+  <string name="split_show_system">Show system apps</string>
+  <string name="split_saved">Split tunnel saved</string>
+  <string name="skip_networks">Skip networks</string>
+  <string name="networks_section">Networks</string>
+  <string name="tunnel_status_exclude_apps">Exclude %1$d apps</string>
+  <string name="tunnel_status_include_apps">Only %1$d apps</string>
+  <string name="tunnel_status_skip_ssids">Skip %1$d SSIDs</string>
   <string name="split_all_apps">All apps through VPN</string>
   <string name="split_exclude_apps">Exclude selected apps</string>
   <string name="split_include_apps">Only selected apps</string>
@@ -83,6 +92,8 @@
   <string name="cancel">Cancel</string>
   <string name="remove_ssid">Remove</string>
   <string name="connect_on_mobile">Connect on mobile data</string>
+  <string name="connect_on_mobile_hint">Only one tunnel can do this. Turning it on here turns it off for the others. On mobile data, that tunnel comes up.</string>
+  <string name="tunnel_status_mobile">Mobile</string>
   <string name="apply_now_mobile_disabled">Connect on mobile data is off</string>
   <string name="control_section">Control</string>
   <string name="control_on">On</string>

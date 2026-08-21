@@ -22,6 +22,7 @@ import com.wirepilot.app.control.WatchingServicePort
 import com.wireguard.android.backend.GoBackend
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticStore
+import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.TunnelCatalog
 
@@ -34,6 +35,7 @@ class AppContainer(
   val diagnostics: DiagnosticStore = SharedPreferencesDiagnosticStore(preferences)
   val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
   val splitTunnels: SplitTunnelStore = SharedPreferencesSplitTunnelStore(preferences)
+  val excludedSsids: ExcludedSsidStore = SharedPreferencesExcludedSsidStore(preferences)
   val goBackend = GoBackend(appContext)
   val inventory = NetworkInventory()
   val ssidReader = SsidReader(
@@ -52,12 +54,20 @@ class AppContainer(
     diagnosticLogger.record(kind, detail)
   }
   val tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger)
+
+  init {
+    ExcludedSsidMigration.run(preferences, catalog, excludedSsids)
+  }
+
   val applyRunner = ApplyRunner(
     store = store,
     clock = { System.currentTimeMillis() },
     network = { ssidReader.snapshot() },
     tunnel = tunnel,
     log = logger,
+    excludedSsidsFor = { name ->
+      if (excludedSsids.exists(name)) excludedSsids.read(name) else null
+    },
   )
   val debouncer = ReceiverDebouncer(
     alarms = alarms,
@@ -95,7 +105,9 @@ class AppContainer(
     watching = watching,
     catalog = catalog,
     splitTunnels = splitTunnels,
+    excludedSsids = excludedSsids,
     tunnelState = tunnel,
+    ssidMigration = { ExcludedSsidMigration.run(preferences, catalog, excludedSsids) },
   )
   val pauseRescheduler = PauseRescheduler(
     store = store,

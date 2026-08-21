@@ -9,6 +9,7 @@ class PolicyEvaluatorTest {
     enabled = true,
     tunnelName = "office",
     excludedSsids = setOf("Home", "Guest"),
+    mobileTunnelName = "office",
   )
 
   @Test
@@ -17,13 +18,13 @@ class PolicyEvaluatorTest {
       enabled.copy(enabled = false),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN, "office"), decision)
   }
 
   @Test
   fun skipWhenControlDisabledAndTunnelBlank() {
     val decision = PolicyEvaluator.decide(
-      enabled.copy(enabled = false, tunnelName = ""),
+      enabled.copy(enabled = false, tunnelName = "", mobileTunnelName = ""),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
     assertEquals(PolicyDecision.Skip(SkipReason.BLANK_TUNNEL_NAME), decision)
@@ -32,7 +33,7 @@ class PolicyEvaluatorTest {
   @Test
   fun skipWhenTunnelNameBlank() {
     val decision = PolicyEvaluator.decide(
-      enabled.copy(tunnelName = "  "),
+      enabled.copy(tunnelName = "  ", mobileTunnelName = ""),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
     assertEquals(PolicyDecision.Skip(SkipReason.BLANK_TUNNEL_NAME), decision)
@@ -53,7 +54,7 @@ class PolicyEvaluatorTest {
       enabled,
       NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN, "office"), decision)
   }
 
   @Test
@@ -62,7 +63,20 @@ class PolicyEvaluatorTest {
       enabled,
       NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe", "Guest")),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN, "office"), decision)
+  }
+
+  @Test
+  fun wifiStillTargetsDefaultWhenMobileDiffers() {
+    val control = enabled.copy(mobileTunnelName = "travel")
+    assertEquals(
+      PolicyDecision.Apply(TunnelCommand.UP, "office"),
+      PolicyEvaluator.decide(control, NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe"))),
+    )
+    assertEquals(
+      PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
+      PolicyEvaluator.decide(control, NetworkSnapshot(NetworkKind.WIFI, setOf("Home"))),
+    )
   }
 
   @Test
@@ -71,25 +85,34 @@ class PolicyEvaluatorTest {
       enabled,
       NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe")),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.UP), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.UP, "office"), decision)
   }
 
   @Test
-  fun upOnMobileWhenFlagOn() {
+  fun upOnMobileWhenMobileTunnelSet() {
     val decision = PolicyEvaluator.decide(
       enabled,
       NetworkSnapshot(NetworkKind.MOBILE),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.UP), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.UP, "office"), decision)
   }
 
   @Test
-  fun downOnMobileWhenFlagOff() {
+  fun downOnMobileWhenNoMobileTunnel() {
     val decision = PolicyEvaluator.decide(
-      enabled.copy(connectOnMobile = false),
+      enabled.copy(mobileTunnelName = ""),
       NetworkSnapshot(NetworkKind.MOBILE),
     )
-    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN), decision)
+    assertEquals(PolicyDecision.Apply(TunnelCommand.DOWN, "office"), decision)
+  }
+
+  @Test
+  fun upOnMobileUsesMobileTunnelNotDefault() {
+    val decision = PolicyEvaluator.decide(
+      enabled.copy(mobileTunnelName = "travel"),
+      NetworkSnapshot(NetworkKind.MOBILE),
+    )
+    assertEquals(PolicyDecision.Apply(TunnelCommand.UP, "travel"), decision)
   }
 
   @Test
@@ -103,20 +126,20 @@ class PolicyEvaluatorTest {
   @Test
   fun excludedWifiAfterSettleIsDown() {
     assertEquals(
-      PolicyDecision.Apply(TunnelCommand.DOWN),
+      PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
       PolicyEvaluator.decide(enabled, NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), hasCellular = true)),
     )
   }
 
   @Test
-  fun otherNetworkFollowsMobileFlag() {
+  fun otherNetworkFollowsMobileTunnel() {
     assertEquals(
-      PolicyDecision.Apply(TunnelCommand.UP),
+      PolicyDecision.Apply(TunnelCommand.UP, "office"),
       PolicyEvaluator.decide(enabled, NetworkSnapshot(NetworkKind.OTHER)),
     )
     assertEquals(
-      PolicyDecision.Apply(TunnelCommand.DOWN),
-      PolicyEvaluator.decide(enabled.copy(connectOnMobile = false), NetworkSnapshot(NetworkKind.OTHER)),
+      PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
+      PolicyEvaluator.decide(enabled.copy(mobileTunnelName = ""), NetworkSnapshot(NetworkKind.OTHER)),
     )
   }
 }

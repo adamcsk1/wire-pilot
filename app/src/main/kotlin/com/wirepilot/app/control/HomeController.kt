@@ -3,8 +3,10 @@ package com.wirepilot.app.control
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticLogBuffer
 import com.wirepilot.app.data.DiagnosticStore
+import com.wirepilot.app.data.EmptyExcludedSsidStore
 import com.wirepilot.app.data.EmptySplitTunnelStore
 import com.wirepilot.app.data.EmptyTunnelCatalog
+import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.StoredControl
 import com.wirepilot.app.data.StoredSplitTunnel
@@ -21,11 +23,14 @@ class HomeController(
   private val watching: WatchingServicePort = NoOpWatchingService,
   private val catalog: TunnelCatalog = EmptyTunnelCatalog,
   private val splitTunnels: SplitTunnelStore = EmptySplitTunnelStore,
+  private val excludedSsids: ExcludedSsidStore = EmptyExcludedSsidStore,
   private val tunnelState: TunnelStatePort = NoOpTunnelState,
+  private val ssidMigration: () -> Unit = {},
 ) {
   fun viewState(): HomeViewState {
     val resolved = persistResolved()
-    val decision = PolicyEvaluator.decide(resolved, network())
+    val selectedSsids = excludedSsids.read(resolved.tunnelName)
+    val decision = PolicyEvaluator.decide(resolved.copy(excludedSsids = selectedSsids), network())
     val diagnosticState = diagnostics.read()
     val status = StatusPresenter.present(resolved, clock())
     val names = catalog.names()
@@ -34,15 +39,20 @@ class HomeController(
       tunnelName = resolved.tunnelName,
       importedTunnels = names,
       tunnelRows = names.map { name ->
+        val rowSplit = splitTunnels.read(name)
         TunnelRow(
           name = name,
           selected = name == resolved.tunnelName,
           up = tunnelState.isUp(name),
+          splitMode = rowSplit.mode,
+          splitAppCount = rowSplit.packages.size,
+          excludedSsidCount = excludedSsids.read(name).size,
+          mobile = name == resolved.mobileTunnelName && resolved.mobileTunnelName.isNotBlank(),
         )
       },
       splitTunnelMode = split.mode,
       splitTunnelPackages = split.packages,
-      excludedSsids = resolved.excludedSsids.sorted(),
+      excludedSsids = selectedSsids.sorted(),
       status = status,
       applyNow = ApplyNowPresenter.present(decision),
       loggingEnabled = diagnosticState.policyEnabled,
@@ -55,9 +65,11 @@ class HomeController(
         LogFormatter.formatAll(diagnosticState.policyEntries),
         LogFormatter.formatAll(diagnosticState.vpnEntries),
       ).filter { it.isNotBlank() }.joinToString("\n"),
-      connectOnMobile = resolved.connectOnMobile,
+      connectOnMobile = resolved.mobileTunnelName.isNotBlank(),
+      mobileTunnelName = resolved.mobileTunnelName,
       controlSelection = ControlSelectionPresenter.present(status),
-      vpnConnected = resolved.tunnelName.isNotBlank() && tunnelState.isUp(resolved.tunnelName),
+      vpnConnected = listOf(resolved.tunnelName, resolved.mobileTunnelName)
+        .any { name -> name.isNotBlank() && tunnelState.isUp(name) },
     )
   }
 
@@ -100,6 +112,7 @@ class HomeController(
     if (!wrote) {
       return TunnelSaveResult.WRITE_FAILED
     }
+    ssidMigration()
     val renaming = !previousName.isNullOrBlank() && previousName != trimmed
     val previousWasUp = renaming && tunnelState.isUp(previousName)
     if (renaming) {
@@ -108,18 +121,26 @@ class HomeController(
       }
       splitTunnels.write(trimmed, splitTunnels.read(previousName))
       splitTunnels.delete(previousName)
+      excludedSsids.write(trimmed, excludedSsids.read(previousName))
+      excludedSsids.delete(previousName)
       catalog.delete(previousName)
       val current = persistResolved()
-      if (current.tunnelName == previousName) {
-        store.write(current.copy(tunnelName = trimmed))
+      if (current.tunnelName == previousName || current.mobileTunnelName == previousName) {
+        store.write(
+          current.copy(
+            tunnelName = if (current.tunnelName == previousName) trimmed else current.tunnelName,
+            mobileTunnelName = if (current.mobileTunnelName == previousName) trimmed else current.mobileTunnelName,
+          ),
+        )
       }
     }
     val current = persistResolved()
     if (current.tunnelName.isBlank()) {
+      assignMobileIfBlank(trimmed)
       selectImportedTunnel(trimmed)
       return TunnelSaveResult.SAVED
     }
-    if (current.tunnelName != trimmed) {
+    if (current.tunnelName != trimmed && current.mobileTunnelName != trimmed) {
       return TunnelSaveResult.SAVED
     }
     applySavedTunnel(trimmed, "tunnel-save", previousWasUp || tunnelState.isUp(trimmed))
@@ -130,15 +151,23 @@ class HomeController(
     if (imported.isEmpty()) {
       return
     }
+    ssidMigration()
     val current = persistResolved()
     if (current.tunnelName.isBlank()) {
+      assignMobileIfBlank(imported.first())
       selectImportedTunnel(imported.first())
       return
     }
-    if (current.tunnelName !in imported) {
+    val importedMobile = current.mobileTunnelName.isNotBlank() && current.mobileTunnelName in imported
+    if (current.tunnelName !in imported && !importedMobile) {
       return
     }
-    applySavedTunnel(current.tunnelName, "tunnel-import", tunnelState.isUp(current.tunnelName))
+    val liveName = if (importedMobile && tunnelState.isUp(current.mobileTunnelName)) {
+      current.mobileTunnelName
+    } else {
+      current.tunnelName
+    }
+    applySavedTunnel(liveName, "tunnel-import", tunnelState.isUp(liveName))
   }
 
   fun deleteImportedTunnel(name: String) {
@@ -150,13 +179,22 @@ class HomeController(
     }
     catalog.delete(name)
     splitTunnels.delete(name)
+    excludedSsids.delete(name)
     val current = persistResolved()
-    if (current.tunnelName != name) {
+    val clearedMobile = if (current.mobileTunnelName == name) {
+      current.copy(mobileTunnelName = "")
+    } else {
+      current
+    }
+    if (clearedMobile != current) {
+      store.write(clearedMobile)
+    }
+    if (clearedMobile.tunnelName != name) {
       return
     }
     val remaining = catalog.names()
     if (remaining.isEmpty()) {
-      store.write(current.copy(tunnelName = "", enabled = false, pausedUntilEpochMillis = null))
+      store.write(clearedMobile.copy(tunnelName = "", enabled = false, pausedUntilEpochMillis = null))
       pauseAlarms.cancel()
       syncWatching()
       return
@@ -176,26 +214,40 @@ class HomeController(
     val storedMode = SplitTunnelPolicy.modeFrom(selection.excludedPackages, selection.includedPackages)
     val storedPackages = selection.excludedPackages + selection.includedPackages
     splitTunnels.write(tunnelName, StoredSplitTunnel(storedMode, storedPackages))
-    if (persistResolved().tunnelName == tunnelName) {
+    val resolved = persistResolved()
+    if (resolved.tunnelName == tunnelName || resolved.mobileTunnelName == tunnelName) {
       applyRunner.applyNow("split-tunnel")
     }
   }
 
-  fun addExcludedSsid(raw: String): Boolean {
-    val current = persistResolved()
-    val nextSsids = SsidList.add(current.excludedSsids, raw)
-    if (nextSsids == current.excludedSsids) {
+  fun excludedSsids(tunnelName: String): Set<String> {
+    return excludedSsids.read(tunnelName)
+  }
+
+  fun addExcludedSsid(raw: String, tunnelName: String = persistResolved().tunnelName): Boolean {
+    if (tunnelName.isBlank()) {
       return false
     }
-    store.write(current.copy(excludedSsids = nextSsids))
-    applyRunner.applyNow("ssid-add")
+    val current = excludedSsids.read(tunnelName)
+    val nextSsids = SsidList.add(current, raw)
+    if (nextSsids == current) {
+      return false
+    }
+    excludedSsids.write(tunnelName, nextSsids)
+    if (persistResolved().tunnelName == tunnelName) {
+      applyRunner.applyNow("ssid-add")
+    }
     return true
   }
 
-  fun removeExcludedSsid(raw: String) {
-    val current = persistResolved()
-    store.write(current.copy(excludedSsids = SsidList.remove(current.excludedSsids, raw)))
-    applyRunner.applyNow("ssid-remove")
+  fun removeExcludedSsid(raw: String, tunnelName: String = persistResolved().tunnelName) {
+    if (tunnelName.isBlank()) {
+      return
+    }
+    excludedSsids.write(tunnelName, SsidList.remove(excludedSsids.read(tunnelName), raw))
+    if (persistResolved().tunnelName == tunnelName) {
+      applyRunner.applyNow("ssid-remove")
+    }
   }
 
   fun enableControl() {
@@ -228,8 +280,23 @@ class HomeController(
     applyRunner.applyNow("pause")
   }
 
-  fun setConnectOnMobile(enabled: Boolean) {
-    store.write(persistResolved().copy(connectOnMobile = enabled))
+  fun setConnectOnMobile(enabled: Boolean, tunnelName: String = persistResolved().tunnelName) {
+    if (tunnelName.isBlank()) {
+      return
+    }
+    val names = catalog.names()
+    if (names.isNotEmpty() && tunnelName !in names) {
+      return
+    }
+    val current = persistResolved()
+    val nextMobile = if (enabled) {
+      tunnelName
+    } else if (current.mobileTunnelName == tunnelName) {
+      ""
+    } else {
+      current.mobileTunnelName
+    }
+    store.write(current.copy(mobileTunnelName = nextMobile))
     applyRunner.applyNow("mobile-flag")
   }
 
@@ -238,17 +305,28 @@ class HomeController(
   }
 
   fun connectManually() {
-    if (persistResolved().enabled) {
+    val current = persistResolved()
+    if (current.enabled) {
       return
     }
-    applyRunner.force(TunnelCommand.UP, "manual-up")
+    val target = manualTarget(current)
+    if (target.isBlank()) {
+      return
+    }
+    applyRunner.force(TunnelCommand.UP, "manual-up", target)
   }
 
   fun disconnectManually() {
-    if (persistResolved().enabled) {
+    val current = persistResolved()
+    if (current.enabled) {
       return
     }
-    applyRunner.force(TunnelCommand.DOWN, "manual-down")
+    if (current.tunnelName.isNotBlank()) {
+      applyRunner.force(TunnelCommand.DOWN, "manual-down", current.tunnelName)
+    }
+    if (current.mobileTunnelName.isNotBlank() && current.mobileTunnelName != current.tunnelName) {
+      applyRunner.force(TunnelCommand.DOWN, "manual-down", current.mobileTunnelName)
+    }
   }
 
   fun setLoggingEnabled(enabled: Boolean) {
@@ -277,6 +355,24 @@ class HomeController(
 
   companion object {
     const val LOG_PREVIEW_LIMIT = 80
+  }
+
+  private fun manualTarget(current: StoredControl): String {
+    val snapshot = network()
+    val onMobile = snapshot.kind == NetworkKind.MOBILE || snapshot.kind == NetworkKind.OTHER
+    return if (onMobile && current.mobileTunnelName.isNotBlank()) {
+      current.mobileTunnelName
+    } else {
+      current.tunnelName
+    }
+  }
+
+  private fun assignMobileIfBlank(name: String) {
+    val current = persistResolved()
+    if (current.mobileTunnelName.isNotBlank() || name !in catalog.names()) {
+      return
+    }
+    store.write(current.copy(mobileTunnelName = name))
   }
 
   private fun applySavedTunnel(tunnelName: String, trigger: String, keepUp: Boolean) {

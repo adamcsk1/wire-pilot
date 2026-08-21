@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/splitToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:navigationIcon="?attr/homeAsUpIndicator"
+    app:navigationIconTint="@color/on_surface"
+    app:title="@string/split_tunnel"
+    app:titleTextColor="@color/on_surface" />
+
+  <RadioGroup
+    android:id="@+id/splitModeGroup"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp">
+
+    <RadioButton
+      android:id="@+id/splitAllApps"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/split_all_apps"
+      android:textColor="@color/on_surface" />
+
+    <RadioButton
+      android:id="@+id/splitExcludeApps"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/split_exclude_apps"
+      android:textColor="@color/on_surface" />
+
+    <RadioButton
+      android:id="@+id/splitIncludeApps"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="@string/split_include_apps"
+      android:textColor="@color/on_surface" />
+  </RadioGroup>
+
+  <LinearLayout
+    android:id="@+id/splitAppControls"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="8dp"
+      android:hint="@string/split_search">
+
+      <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/splitSearchInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:imeOptions="actionDone"
+        android:inputType="text"
+        android:singleLine="true" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+      android:id="@+id/showSystemAppsSwitch"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="8dp"
+      android:text="@string/split_show_system"
+      android:textColor="@color/on_surface" />
+
+    <androidx.recyclerview.widget.RecyclerView
+      android:id="@+id/splitAppList"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_marginTop="8dp"
+      android:layout_weight="1" />
+  </LinearLayout>
+</LinearLayout>
