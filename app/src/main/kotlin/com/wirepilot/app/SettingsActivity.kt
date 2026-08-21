@@ -1,6 +1,7 @@
 package com.wirepilot.app
 
 import android.os.Bundle
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -12,9 +13,12 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.wirepilot.app.control.AppLockSession
+import com.wirepilot.app.data.ThemeMode
 import com.wirepilot.app.control.SettingsRowStatus
 import com.wirepilot.app.control.SettingsRowStatusPresenter
 import com.wirepilot.app.control.SystemSettingsTarget
+import com.wirepilot.app.data.ThemeModeStore
+import com.wirepilot.app.platform.AppCompatThemeMode
 import com.wirepilot.app.platform.BiometricAvailability
 import com.wirepilot.app.platform.SettingsNavigator
 import com.wirepilot.app.ui.AppPermissions
@@ -23,6 +27,8 @@ import com.wirepilot.app.ui.SystemBarInsets
 class SettingsActivity : AppCompatActivity() {
   private lateinit var appLockSession: AppLockSession
   private lateinit var settingsNavigator: SettingsNavigator
+  private lateinit var themeModes: ThemeModeStore
+  private lateinit var themeModeGroup: RadioGroup
   private lateinit var appLockSwitch: MaterialSwitch
   private lateinit var biometricSwitch: MaterialSwitch
   private lateinit var locationPermissionStatus: TextView
@@ -35,6 +41,7 @@ class SettingsActivity : AppCompatActivity() {
   private var unusedAppsStatus = SettingsRowStatus.UNKNOWN
   private var suppressLockSwitch = false
   private var suppressBiometricSwitch = false
+  private var suppressThemeSelection = false
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -42,7 +49,9 @@ class SettingsActivity : AppCompatActivity() {
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     val container = (application as WirePilotApp).container
     appLockSession = container.appLockSession
+    themeModes = container.themeModes
     settingsNavigator = SettingsNavigator(this)
+    themeModeGroup = findViewById(R.id.themeModeGroup)
     appLockSwitch = findViewById(R.id.appLockSwitch)
     biometricSwitch = findViewById(R.id.biometricSwitch)
     locationPermissionStatus = findViewById(R.id.locationPermissionStatus)
@@ -87,6 +96,14 @@ class SettingsActivity : AppCompatActivity() {
       appLockSession.setBiometric(checked)
       refreshUi()
     }
+    themeModeGroup.setOnCheckedChangeListener { _, checkedId ->
+      if (suppressThemeSelection) {
+        return@setOnCheckedChangeListener
+      }
+      val mode = themeModeFor(checkedId) ?: return@setOnCheckedChangeListener
+      themeModes.write(mode)
+      AppCompatThemeMode.apply(mode)
+    }
     refreshUi()
   }
 
@@ -106,6 +123,9 @@ class SettingsActivity : AppCompatActivity() {
     suppressBiometricSwitch = true
     biometricSwitch.isChecked = lockEnabled && appLockSession.state().biometricEnabled
     suppressBiometricSwitch = false
+    suppressThemeSelection = true
+    themeModeGroup.check(themeButtonId(themeModes.read()))
+    suppressThemeSelection = false
     bindOnOff(locationPermissionStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.fineLocationGranted(this)))
     bindOnOff(nearbyWifiStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.nearbyWifiGranted(this)))
     bindOnOff(locationSettingsStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.locationEnabled(this)))
@@ -168,6 +188,23 @@ class SettingsActivity : AppCompatActivity() {
 
   private fun bindUnknown(view: TextView) {
     view.setText(R.string.settings_status_unknown)
+  }
+
+  private fun themeModeFor(checkedId: Int): ThemeMode? {
+    return when (checkedId) {
+      R.id.themeSystem -> ThemeMode.SYSTEM
+      R.id.themeLight -> ThemeMode.LIGHT
+      R.id.themeDark -> ThemeMode.DARK
+      else -> null
+    }
+  }
+
+  private fun themeButtonId(mode: ThemeMode): Int {
+    return when (mode) {
+      ThemeMode.SYSTEM -> R.id.themeSystem
+      ThemeMode.LIGHT -> R.id.themeLight
+      ThemeMode.DARK -> R.id.themeDark
+    }
   }
 
   private fun openSystemSettings(target: SystemSettingsTarget) {

@@ -20,6 +20,7 @@ import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticStore
 import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
+import com.wirepilot.app.data.ThemeModeStore
 import com.wirepilot.app.data.TunnelCatalog
 
 class AppContainer(
@@ -35,6 +36,7 @@ class AppContainer(
   val diagnostics: DiagnosticStore = SharedPreferencesDiagnosticStore(preferences)
   val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
   val splitTunnels: SplitTunnelStore = SharedPreferencesSplitTunnelStore(preferences)
+  val themeModes: ThemeModeStore = SharedPreferencesThemeModeStore(preferences)
   val excludedSsids: ExcludedSsidStore = SharedPreferencesExcludedSsidStore(encryptedSsids)
   val goBackend = GoBackend(appContext)
   val inventory = NetworkInventory()
