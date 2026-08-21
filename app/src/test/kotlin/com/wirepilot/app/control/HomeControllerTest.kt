@@ -1,5 +1,6 @@
 package com.wirepilot.app.control
 
+import com.wirepilot.app.data.DiagnosticState
 import com.wirepilot.app.data.StoredControl
 import com.wirepilot.app.data.TunnelCatalog
 import com.wirepilot.app.support.InMemoryControlStore
@@ -67,6 +68,9 @@ class HomeControllerTest {
     assertTrue(state.applyNow.enabled)
     assertFalse(state.connectOnMobile)
     assertEquals(ControlSelection.ON, state.controlSelection)
+    assertFalse(state.policyLoggingEnabled)
+    assertFalse(state.vpnLoggingEnabled)
+    assertFalse(state.usageEnabled)
   }
 
   @Test
@@ -381,7 +385,7 @@ class HomeControllerTest {
   @Test
   fun loggingCanBeDisabledAndCleared() {
     val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
-    val diagnostics = InMemoryDiagnosticStore()
+    val diagnostics = InMemoryDiagnosticStore(DiagnosticState(policyEnabled = true, vpnEnabled = true))
     val logger = DiagnosticLogger(diagnostics) { now }
     val home = HomeController(
       store = store,
@@ -1243,6 +1247,55 @@ class HomeControllerTest {
     assertEquals(
       listOf(false, true),
       home.viewState().tunnelRows.sortedBy { row -> row.name }.map { row -> row.mobile },
+    )
+  }
+
+  @Test
+  fun usageSnapshotStaysOffUntilEnabled() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+      tunnelState = TunnelStatePort { true },
+      tunnelStats = TunnelStatsPort { TunnelTraffic(100L, 200L) },
+    )
+    assertEquals(UsageSnapshot(enabled = false), home.usageSnapshot())
+    home.setUsageEnabled(true)
+    assertTrue(home.viewState().usageEnabled)
+    assertEquals(
+      UsageSnapshot(enabled = true, connected = true, tunnelName = "office", rxBytes = 100L, txBytes = 200L),
+      home.usageSnapshot(),
+    )
+  }
+
+  @Test
+  fun usageSnapshotWhenDownOrMissingStats() {
+    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "travel"))
+    val down = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(DiagnosticState(usageEnabled = true)),
+    )
+    assertEquals(UsageSnapshot(enabled = true, connected = false), down.usageSnapshot())
+    val upNoStats = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, RecordingTunnel()),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(DiagnosticState(usageEnabled = true)),
+      tunnelState = TunnelStatePort { name -> name == "travel" },
+    )
+    assertEquals(
+      UsageSnapshot(enabled = true, connected = true, tunnelName = "travel", rxBytes = 0L, txBytes = 0L),
+      upNoStats.usageSnapshot(),
     )
   }
 }

@@ -8,6 +8,8 @@ import com.wirepilot.app.control.NoOpDiagnosticLog
 import com.wirepilot.app.control.TunnelCommand
 import com.wirepilot.app.control.TunnelCommands
 import com.wirepilot.app.control.TunnelStatePort
+import com.wirepilot.app.control.TunnelStatsPort
+import com.wirepilot.app.control.TunnelTraffic
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.TunnelCatalog
 import android.os.Handler
@@ -23,7 +25,7 @@ class GoTunnelController(
   private val catalog: TunnelCatalog,
   private val splitTunnels: SplitTunnelStore,
   private val log: DiagnosticLog = NoOpDiagnosticLog,
-) : TunnelCommands, TunnelStatePort {
+) : TunnelCommands, TunnelStatePort, TunnelStatsPort {
   private val tunnels = ConcurrentHashMap<String, NamedTunnel>()
   private val lastUpConfDigest = ConcurrentHashMap<String, String>()
   private val pending = ConcurrentHashMap<String, PendingCommand>()
@@ -56,6 +58,15 @@ class GoTunnelController(
     pending[tunnelName]?.let { return it.wantUp }
     val tunnel = tunnels.getOrPut(tunnelName) { namedTunnel(tunnelName) }
     return runCatching { backend.getState(tunnel) }.getOrDefault(Tunnel.State.DOWN) == Tunnel.State.UP
+  }
+
+  override fun traffic(tunnelName: String): TunnelTraffic? {
+    if (tunnelName.isBlank()) {
+      return null
+    }
+    val tunnel = tunnels.getOrPut(tunnelName) { namedTunnel(tunnelName) }
+    val stats = runCatching { backend.getStatistics(tunnel) }.getOrNull() ?: return null
+    return TunnelTraffic(rxBytes = stats.totalRx(), txBytes = stats.totalTx())
   }
 
   private fun apply(tunnelName: String, command: TunnelCommand, generation: Long) {

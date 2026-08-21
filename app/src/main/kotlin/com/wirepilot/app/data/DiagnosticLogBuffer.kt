@@ -49,4 +49,8 @@ object DiagnosticLogBuffer {
   fun setEnabled(state: DiagnosticState, enabled: Boolean): DiagnosticState {
     return state.copy(policyEnabled = enabled, vpnEnabled = enabled)
   }
+
+  fun setUsageEnabled(state: DiagnosticState, enabled: Boolean): DiagnosticState {
+    return state.copy(usageEnabled = enabled)
+  }
 }

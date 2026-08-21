@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class DiagnosticLoggerTest {
   @Test
   fun recordsWhenEnabled() {
-    val store = InMemoryDiagnosticStore()
+    val store = InMemoryDiagnosticStore(DiagnosticState(policyEnabled = true))
     DiagnosticLogger(store) { 42L }.record(LogKind.BOOT, "start")
     assertEquals(listOf(LogEvent(42L, LogKind.BOOT, "start")), store.read().policyEntries)
   }

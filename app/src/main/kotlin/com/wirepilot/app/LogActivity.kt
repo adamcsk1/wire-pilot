@@ -1,72 +1,40 @@
 package com.wirepilot.app
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.os.Bundle
 import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.card.MaterialCardView
 import com.wirepilot.app.control.HomeController
+import com.wirepilot.app.control.LogChannel
 import com.wirepilot.app.ui.SystemBarInsets
 
 class LogActivity : AppCompatActivity() {
   private lateinit var controller: HomeController
-  private lateinit var policyLoggingSwitch: MaterialSwitch
-  private lateinit var vpnLoggingSwitch: MaterialSwitch
-  private lateinit var policyLogPreview: TextView
-  private lateinit var vpnLogPreview: TextView
-  private lateinit var copyPolicyLogButton: MaterialButton
-  private lateinit var clearPolicyLogButton: MaterialButton
-  private lateinit var copyVpnLogButton: MaterialButton
-  private lateinit var clearVpnLogButton: MaterialButton
-  private var suppressPolicySwitch = false
-  private var suppressVpnSwitch = false
+  private lateinit var policyLogStatus: TextView
+  private lateinit var vpnLogStatus: TextView
+  private lateinit var usageStatus: TextView
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_log)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
     controller = (application as WirePilotApp).container.homeController
-    policyLoggingSwitch = findViewById(R.id.policyLoggingSwitch)
-    vpnLoggingSwitch = findViewById(R.id.vpnLoggingSwitch)
-    policyLogPreview = findViewById(R.id.policyLogPreview)
-    vpnLogPreview = findViewById(R.id.vpnLogPreview)
-    copyPolicyLogButton = findViewById(R.id.copyPolicyLogButton)
-    clearPolicyLogButton = findViewById(R.id.clearPolicyLogButton)
-    copyVpnLogButton = findViewById(R.id.copyVpnLogButton)
-    clearVpnLogButton = findViewById(R.id.clearVpnLogButton)
+    policyLogStatus = findViewById(R.id.policyLogStatus)
+    vpnLogStatus = findViewById(R.id.vpnLogStatus)
+    usageStatus = findViewById(R.id.usageStatus)
     findViewById<MaterialToolbar>(R.id.logToolbar).setNavigationOnClickListener {
       onBackPressedDispatcher.onBackPressed()
     }
-    policyLoggingSwitch.setOnCheckedChangeListener { _, checked ->
-      if (suppressPolicySwitch) {
-        return@setOnCheckedChangeListener
-      }
-      controller.setPolicyLoggingEnabled(checked)
-      refreshUi()
+    findViewById<MaterialCardView>(R.id.policyLogCard).setOnClickListener {
+      startActivity(LogDetailActivity.intent(this, LogChannel.POLICY))
     }
-    vpnLoggingSwitch.setOnCheckedChangeListener { _, checked ->
-      if (suppressVpnSwitch) {
-        return@setOnCheckedChangeListener
-      }
-      controller.setVpnLoggingEnabled(checked)
-      refreshUi()
+    findViewById<MaterialCardView>(R.id.vpnLogCard).setOnClickListener {
+      startActivity(LogDetailActivity.intent(this, LogChannel.VPN))
     }
-    copyPolicyLogButton.setOnClickListener { copy(controller.viewState().policyLogText) }
-    copyVpnLogButton.setOnClickListener { copy(controller.viewState().vpnLogText) }
-    clearPolicyLogButton.setOnClickListener {
-      controller.clearPolicyLogs()
-      refreshUi()
+    findViewById<MaterialCardView>(R.id.usageCard).setOnClickListener {
+      startActivity(UsageActivity.intent(this))
     }
-    clearVpnLogButton.setOnClickListener {
-      controller.clearVpnLogs()
-      refreshUi()
-    }
-    refreshUi()
   }
 
   override fun onResume() {
@@ -76,35 +44,12 @@ class LogActivity : AppCompatActivity() {
 
   private fun refreshUi() {
     val state = controller.viewState()
-    suppressPolicySwitch = true
-    policyLoggingSwitch.isChecked = state.policyLoggingEnabled
-    suppressPolicySwitch = false
-    suppressVpnSwitch = true
-    vpnLoggingSwitch.isChecked = state.vpnLoggingEnabled
-    suppressVpnSwitch = false
-    policyLogPreview.text = state.policyLogText.ifBlank { getString(R.string.log_empty) }
-    vpnLogPreview.text = state.vpnLogText.ifBlank { getString(R.string.log_empty) }
-    val policyOn = state.policyLogText.isNotBlank()
-    val vpnOn = state.vpnLogText.isNotBlank()
-    copyPolicyLogButton.isEnabled = policyOn
-    clearPolicyLogButton.isEnabled = policyOn
-    copyVpnLogButton.isEnabled = vpnOn
-    clearVpnLogButton.isEnabled = vpnOn
+    policyLogStatus.setText(statusRes(state.policyLoggingEnabled))
+    vpnLogStatus.setText(statusRes(state.vpnLoggingEnabled))
+    usageStatus.setText(statusRes(state.usageEnabled))
   }
 
-  private fun copy(text: String) {
-    if (text.isBlank()) {
-      return
-    }
-    AlertDialog.Builder(this)
-      .setTitle(R.string.copy_log)
-      .setMessage(R.string.copy_log_contains_networks)
-      .setPositiveButton(R.string.copy_log) { _, _ ->
-        val clipboard = getSystemService(ClipboardManager::class.java)
-        clipboard.setPrimaryClip(ClipData.newPlainText("WirePilot log", text))
-        Toast.makeText(this, R.string.log_copied, Toast.LENGTH_SHORT).show()
-      }
-      .setNegativeButton(R.string.cancel, null)
-      .show()
+  private fun statusRes(enabled: Boolean): Int {
+    return if (enabled) R.string.log_status_on else R.string.log_status_off
   }
 }

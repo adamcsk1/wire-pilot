@@ -6,7 +6,6 @@
   <string name="watching_channel_description">Shown while WirePilot applies SSID rules</string>
   <string name="status_watching_detail">Tunnel follows SSID rules. Check runs only after a network change or boot.</string>
   <string name="status_watching_no_notification">Watching is not running. Allow notifications.</string>
-  <string name="setup_grant_notifications">Allow notifications so watching can run after you leave the app</string>
   <string name="status_disabled">Control off</string>
   <string name="status_disabled_detail">The tunnel stays down until you turn control back on.</string>
   <string name="status_paused">Control paused</string>
@@ -74,9 +73,6 @@
   <string name="export_success">Export saved</string>
   <string name="export_failed">Could not export</string>
   <string name="vpn_prepare_needed">Allow the VPN connection</string>
-  <string name="setup_import_tunnel">Add or import a WireGuard tunnel</string>
-  <string name="setup_prepare_vpn">Allow the system VPN prompt</string>
-  <string name="always_on_hint">For background: System → VPN → WirePilot → Always-on.</string>
   <string name="ssid_section">Skip VPN on these SSIDs</string>
   <string name="ssid_empty">No networks excluded. Tunnel stays up except on networks you add here.</string>
   <string name="add_current_ssid">Add current: %1$s</string>
@@ -107,10 +103,6 @@
   <string name="pause_8h">8 hours</string>
   <string name="pause_12h">12 hours</string>
   <string name="pause_24h">24 hours</string>
-  <string name="setup_section">Setup</string>
-
-  <string name="setup_grant_nearby_wifi">Grant nearby Wi‑Fi permission so SSID can be read</string>
-
   <string name="apply_now">Apply now</string>
   <string name="apply_policy">Apply policy</string>
   <string name="vpn_background_hint">WirePilot owns the VPN. Enable Always-on in system VPN settings for background.</string>
@@ -122,7 +114,6 @@
   <string name="apply_now_need_nearby">Nearby Wi‑Fi permission needed</string>
   <string name="apply_now_need_fine_location">Location permission needed to read the network name</string>
   <string name="apply_now_need_location">Location must be on to read the network name</string>
-  <string name="setup_grant_fine_location">Grant location permission so the network name can be read</string>
   <string name="keep_running_section">Keep running</string>
   <string name="keep_running_hint">Boot needs Unrestricted battery. Some phones also need Autostart in App info.</string>
   <string name="open_app_info">App info (autostart)</string>
@@ -141,12 +132,37 @@
   <string name="policy_logging">Policy log</string>
   <string name="vpn_logging">VPN log</string>
   <string name="settings_unavailable">Could not open that settings screen</string>
-  <string name="setup_enable_location">Turn on Location so the network name can be read</string>
   <string name="logging_enabled">Logging</string>
   <string name="log_empty">No log entries yet</string>
   <string name="copy_log">Copy log</string>
   <string name="clear_log">Clear</string>
   <string name="log_copied">Log copied</string>
   <string name="log_title">Log</string>
+  <string name="log_status_on">On</string>
+  <string name="log_status_off">Off</string>
+  <string name="usage_title">Network usage</string>
+  <string name="usage_enabled">Usage monitor</string>
+  <string name="usage_disabled_hint">Turn on to show live received and sent bytes for the connected tunnel.</string>
+  <string name="usage_vpn_down">VPN is down</string>
+  <string name="usage_received">Received</string>
+  <string name="usage_sent">Sent</string>
+  <string name="app_lock_section">App lock</string>
+  <string name="app_lock">App lock</string>
+  <string name="app_lock_hint">Require a PIN, or biometrics, when opening WirePilot.</string>
+  <string name="unlock_with_biometrics">Unlock with biometrics</string>
+  <string name="lock_title">Unlock</string>
+  <string name="lock_unlock_message">Enter your PIN to open WirePilot.</string>
+  <string name="lock_set_message">Choose a 4–8 digit PIN.</string>
+  <string name="lock_disable_message">Enter your PIN to turn off app lock.</string>
+  <string name="pin_hint">PIN</string>
+  <string name="confirm_pin_hint">Confirm PIN</string>
+  <string name="unlock">Unlock</string>
+  <string name="set_pin">Set PIN</string>
+  <string name="turn_off_app_lock">Turn off app lock</string>
+  <string name="pin_invalid">PIN must be 4–8 digits</string>
+  <string name="pin_mismatch">PINs do not match</string>
+  <string name="wrong_pin">Wrong PIN</string>
+  <string name="use_pin">Use PIN</string>
+  <string name="biometric_unlock">Unlock with biometrics</string>
   <string name="settings_title">Settings</string>
 </resources>

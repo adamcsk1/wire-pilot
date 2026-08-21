@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/screenRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/surface"
+  android:orientation="vertical">
+
+  <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/lockToolbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/surface"
+    app:title="@string/lock_title"
+    app:titleTextColor="@color/on_surface" />
+
+  <ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:fillViewport="true">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:padding="20dp">
+
+      <TextView
+        android:id="@+id/lockMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/lock_unlock_message"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="15sp" />
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="@string/pin_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/pinInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:importantForAutofill="no"
+          android:inputType="numberPassword"
+          android:maxLength="8"
+          android:saveEnabled="false"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/confirmPinLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:hint="@string/confirm_pin_hint">
+
+        <com.google.android.material.textfield.TextInputEditText
+          android:id="@+id/confirmPinInput"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:importantForAutofill="no"
+          android:inputType="numberPassword"
+          android:maxLength="8"
+          android:saveEnabled="false"
+          android:singleLine="true" />
+      </com.google.android.material.textfield.TextInputLayout>
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/lockActionButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/unlock" />
+
+      <com.google.android.material.button.MaterialButton
+        android:id="@+id/biometricButton"
+        style="@style/Widget.WirePilot.Button.Outlined"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/biometric_unlock" />
+    </LinearLayout>
+  </ScrollView>
+</LinearLayout>

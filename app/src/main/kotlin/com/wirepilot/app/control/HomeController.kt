@@ -25,6 +25,7 @@ class HomeController(
   private val splitTunnels: SplitTunnelStore = EmptySplitTunnelStore,
   private val excludedSsids: ExcludedSsidStore = EmptyExcludedSsidStore,
   private val tunnelState: TunnelStatePort = NoOpTunnelState,
+  private val tunnelStats: TunnelStatsPort = NoOpTunnelStats,
   private val ssidMigration: () -> Unit = {},
 ) {
   fun viewState(): HomeViewState {
@@ -58,6 +59,7 @@ class HomeController(
       loggingEnabled = diagnosticState.policyEnabled,
       policyLoggingEnabled = diagnosticState.policyEnabled,
       vpnLoggingEnabled = diagnosticState.vpnEnabled,
+      usageEnabled = diagnosticState.usageEnabled,
       logPreview = LogFormatter.preview(diagnosticState.policyEntries, LOG_PREVIEW_LIMIT),
       policyLogText = LogFormatter.formatAll(diagnosticState.policyEntries),
       vpnLogText = LogFormatter.formatAll(diagnosticState.vpnEntries),
@@ -339,6 +341,31 @@ class HomeController(
 
   fun setVpnLoggingEnabled(enabled: Boolean) {
     diagnostics.write(DiagnosticLogBuffer.setVpnEnabled(diagnostics.read(), enabled))
+  }
+
+  fun setUsageEnabled(enabled: Boolean) {
+    diagnostics.write(DiagnosticLogBuffer.setUsageEnabled(diagnostics.read(), enabled))
+  }
+
+  fun usageSnapshot(): UsageSnapshot {
+    val diagnosticState = diagnostics.read()
+    if (!diagnosticState.usageEnabled) {
+      return UsageSnapshot(enabled = false)
+    }
+    val current = store.read()
+    val names = listOf(current.tunnelName, current.mobileTunnelName)
+      .filter { name -> name.isNotBlank() }
+      .distinct()
+    val upName = names.firstOrNull { name -> tunnelState.isUp(name) }
+      ?: return UsageSnapshot(enabled = true, connected = false)
+    val traffic = tunnelStats.traffic(upName)
+    return UsageSnapshot(
+      enabled = true,
+      connected = true,
+      tunnelName = upName,
+      rxBytes = traffic?.rxBytes ?: 0L,
+      txBytes = traffic?.txBytes ?: 0L,
+    )
   }
 
   fun clearLogs() {

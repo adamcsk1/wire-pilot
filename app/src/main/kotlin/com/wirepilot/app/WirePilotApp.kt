@@ -4,6 +4,7 @@ import android.app.Application
 import com.wireguard.android.backend.GoBackend
 import com.wirepilot.app.control.LogKind
 import com.wirepilot.app.platform.AppContainer
+import com.wirepilot.app.platform.AppLockLifecycle
 
 class WirePilotApp : Application() {
   lateinit var container: AppContainer
@@ -12,6 +13,7 @@ class WirePilotApp : Application() {
   override fun onCreate() {
     super.onCreate()
     container = AppContainer(this)
+    AppLockLifecycle(container.appLockSession).register(this)
     GoBackend.setAlwaysOnCallback {
       container.applyRunner.applyNow("always-on")
     }

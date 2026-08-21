@@ -19,6 +19,7 @@ class DiagnosticCodecTest {
     val state = DiagnosticState(
       policyEnabled = false,
       vpnEnabled = true,
+      usageEnabled = true,
       policyEntries = listOf(LogEvent(10L, LogKind.BOOT, "boot")),
       vpnEntries = listOf(LogEvent(20L, LogKind.TUNNEL, "up")),
     )
@@ -27,8 +28,19 @@ class DiagnosticCodecTest {
 
   @Test
   fun encodeEnabledHeaderOnly() {
-    assertEquals("1\t1", DiagnosticCodec.encode(DiagnosticState()))
-    assertEquals("0\t0", DiagnosticCodec.encode(DiagnosticState(policyEnabled = false, vpnEnabled = false)))
+    assertEquals("0\t0\t0", DiagnosticCodec.encode(DiagnosticState()))
+    assertEquals(
+      "1\t1\t1",
+      DiagnosticCodec.encode(DiagnosticState(policyEnabled = true, vpnEnabled = true, usageEnabled = true)),
+    )
+  }
+
+  @Test
+  fun decodeMissingUsageIsOff() {
+    val state = DiagnosticCodec.decode("1\t1")
+    assertTrue(state.policyEnabled)
+    assertTrue(state.vpnEnabled)
+    assertFalse(state.usageEnabled)
   }
 
   @Test

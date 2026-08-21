@@ -30,50 +30,9 @@
       android:padding="20dp">
 
       <com.google.android.material.card.MaterialCardView
-        android:id="@+id/setupCard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/surface_card"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="0dp"
-        app:strokeColor="@color/outline"
-        app:strokeWidth="1dp">
-
-        <LinearLayout
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:orientation="vertical"
-          android:padding="16dp">
-
-          <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/setup_section"
-            android:textColor="@color/on_surface"
-            android:textStyle="bold" />
-
-          <LinearLayout
-            android:id="@+id/setupList"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="vertical" />
-
-          <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/always_on_hint"
-            android:textColor="@color/on_surface_muted"
-            android:textSize="13sp" />
-        </LinearLayout>
-      </com.google.android.material.card.MaterialCardView>
-
-      <com.google.android.material.card.MaterialCardView
         android:id="@+id/keepRunningCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         app:cardBackgroundColor="@color/surface_card"
         app:cardCornerRadius="16dp"
         app:cardElevation="0dp"
@@ -136,6 +95,55 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/open_vpn_settings" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/appLockCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_lock_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/app_lock_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/appLockSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/app_lock"
+            android:textColor="@color/on_surface" />
+
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/biometricSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/unlock_with_biometrics"
+            android:textColor="@color/on_surface" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

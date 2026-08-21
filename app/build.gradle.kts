@@ -178,5 +178,7 @@ dependencies {
   implementation("androidx.recyclerview:recyclerview:1.4.0")
   implementation("com.wireguard.android:tunnel:1.0.20260102")
   implementation("androidx.security:security-crypto:1.1.0")
+  implementation("androidx.biometric:biometric:1.1.0")
+  implementation("androidx.lifecycle:lifecycle-process:2.11.0")
   testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
 }

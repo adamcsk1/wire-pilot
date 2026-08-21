@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.wirepilot.app.control.AppLockSession
 import com.wirepilot.app.control.ApplyRunner
 import com.wirepilot.app.control.BootCoordinator
 import com.wirepilot.app.control.DiagnosticLog
@@ -54,6 +55,8 @@ class AppContainer(
     diagnosticLogger.record(kind, detail)
   }
   val tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger)
+  val appLockStore = EncryptedAppLockStore(appContext)
+  val appLockSession = AppLockSession(appLockStore)
 
   init {
     ExcludedSsidMigration.run(preferences, catalog, excludedSsids)
@@ -107,6 +110,7 @@ class AppContainer(
     splitTunnels = splitTunnels,
     excludedSsids = excludedSsids,
     tunnelState = tunnel,
+    tunnelStats = tunnel,
     ssidMigration = { ExcludedSsidMigration.run(preferences, catalog, excludedSsids) },
   )
   val pauseRescheduler = PauseRescheduler(

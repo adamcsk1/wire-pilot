@@ -32,4 +32,11 @@ class EmptyStoresTest {
     assertEquals(false, EmptyExcludedSsidStore.exists("office"))
     assertEquals(emptySet(), EmptyExcludedSsidStore.read("office"))
   }
+
+  @Test
+  fun emptyAppLockStoreIsNoOp() {
+    assertEquals(AppLockState(), EmptyAppLockStore.read())
+    EmptyAppLockStore.write(AppLockState(enabled = true, pinSalt = "aa", pinHash = "bb"))
+    assertEquals(AppLockState(), EmptyAppLockStore.read())
+  }
 }

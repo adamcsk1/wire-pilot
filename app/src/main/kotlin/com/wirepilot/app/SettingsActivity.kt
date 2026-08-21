@@ -1,39 +1,35 @@
 package com.wirepilot.app
 
-import android.net.VpnService
 import android.os.Bundle
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
-import com.wirepilot.app.control.HomeController
-import com.wirepilot.app.control.SetupEvaluator
-import com.wirepilot.app.control.SetupFlags
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.wirepilot.app.control.AppLockSession
 import com.wirepilot.app.control.SystemSettingsTarget
+import com.wirepilot.app.platform.BiometricAvailability
 import com.wirepilot.app.platform.SettingsNavigator
-import com.wirepilot.app.ui.AppPermissions
-import com.wirepilot.app.ui.SetupLabels
 import com.wirepilot.app.ui.SystemBarInsets
 
 class SettingsActivity : AppCompatActivity() {
-  private lateinit var controller: HomeController
+  private lateinit var appLockSession: AppLockSession
   private lateinit var settingsNavigator: SettingsNavigator
-  private lateinit var setupCard: MaterialCardView
-  private lateinit var setupList: LinearLayout
+  private lateinit var appLockSwitch: MaterialSwitch
+  private lateinit var biometricSwitch: MaterialSwitch
+  private var suppressLockSwitch = false
+  private var suppressBiometricSwitch = false
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.activity_settings)
     SystemBarInsets.apply(findViewById(R.id.screenRoot))
-    controller = (application as WirePilotApp).container.homeController
+    val container = (application as WirePilotApp).container
+    appLockSession = container.appLockSession
     settingsNavigator = SettingsNavigator(this)
-    setupCard = findViewById(R.id.setupCard)
-    setupList = findViewById(R.id.setupList)
+    appLockSwitch = findViewById(R.id.appLockSwitch)
+    biometricSwitch = findViewById(R.id.biometricSwitch)
     findViewById<MaterialToolbar>(R.id.settingsToolbar).setNavigationOnClickListener {
       onBackPressedDispatcher.onBackPressed()
     }
@@ -52,6 +48,23 @@ class SettingsActivity : AppCompatActivity() {
     findViewById<MaterialButton>(R.id.vpnSettingsButton).setOnClickListener {
       openSystemSettings(SystemSettingsTarget.VPN)
     }
+    appLockSwitch.setOnCheckedChangeListener { _, checked ->
+      if (suppressLockSwitch) {
+        return@setOnCheckedChangeListener
+      }
+      if (checked) {
+        startActivity(LockActivity.intent(this, LockActivity.MODE_SET))
+      } else {
+        startActivity(LockActivity.intent(this, LockActivity.MODE_DISABLE))
+      }
+    }
+    biometricSwitch.setOnCheckedChangeListener { _, checked ->
+      if (suppressBiometricSwitch) {
+        return@setOnCheckedChangeListener
+      }
+      appLockSession.setBiometric(checked)
+      refreshUi()
+    }
     refreshUi()
   }
 
@@ -61,27 +74,15 @@ class SettingsActivity : AppCompatActivity() {
   }
 
   private fun refreshUi() {
-    val flags = SetupFlags(
-      nearbyWifiGranted = AppPermissions.nearbyWifiGranted(this),
-      fineLocationGranted = AppPermissions.fineLocationGranted(this),
-      locationEnabled = AppPermissions.locationEnabled(this),
-      notificationsGranted = AppPermissions.notificationsGranted(this),
-      tunnelImported = controller.viewState().importedTunnels.isNotEmpty(),
-      vpnPrepared = VpnService.prepare(this) == null,
-    )
-    val steps = SetupEvaluator.steps(flags)
-    setupList.removeAllViews()
-    setupCard.isVisible = steps.isNotEmpty()
-    steps.forEach { step ->
-      setupList.addView(
-        TextView(this).apply {
-          text = getString(SetupLabels.stringRes(step))
-          setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.on_surface))
-          textSize = 15f
-          setPadding(0, 8, 0, 8)
-        },
-      )
-    }
+    val lockEnabled = appLockSession.isEnabled()
+    val biometricAvailable = BiometricAvailability.canAuthenticate(this)
+    suppressLockSwitch = true
+    appLockSwitch.isChecked = lockEnabled
+    suppressLockSwitch = false
+    biometricSwitch.isVisible = lockEnabled && biometricAvailable
+    suppressBiometricSwitch = true
+    biometricSwitch.isChecked = lockEnabled && appLockSession.state().biometricEnabled
+    suppressBiometricSwitch = false
   }
 
   private fun openSystemSettings(target: SystemSettingsTarget) {
