@@ -41,14 +41,49 @@ class NetworkObservationLedgerTest {
   }
 
   @Test
-  fun callbackCanReplaceReadableObservationWithRedactedState() {
+  fun laterReadableCallbackReplacesPreviousReadableSsid() {
     val ledger = NetworkObservationLedger<String>()
-    val redacted = observation("<unknown ssid>")
     ledger.observe("wifi", observation("Home"))
+    val cafe = observation("Cafe")
+
+    ledger.observe("wifi", cafe)
+
+    assertEquals(listOf(cafe), ledger.values())
+  }
+
+  @Test
+  fun laterReadableCallbackReplacesRedactedSsid() {
+    val ledger = NetworkObservationLedger<String>()
+    ledger.observe("wifi", observation("<unknown ssid>"))
+    val cafe = observation("Cafe")
+
+    ledger.observe("wifi", cafe)
+
+    assertEquals(listOf(cafe), ledger.values())
+  }
+
+  @Test
+  fun callbackKeepsReadableSsidWhenLaterCallbackIsRedacted() {
+    val ledger = NetworkObservationLedger<String>()
+    ledger.observe("wifi", observation("Home"))
+    val redacted = observation("<unknown ssid>").copy(
+      link = InventoryLink(wifi = true, cellular = true, rawSsid = "<unknown ssid>"),
+      probe = SsidProbeLink(
+        wifi = true,
+        cellular = true,
+        vpn = false,
+        transportClass = "RedactedWifiInfo",
+        ssidRaw = "<unknown ssid>",
+        wifiSsidRaw = null,
+      ),
+    )
 
     ledger.observe("wifi", redacted)
 
-    assertEquals(listOf(redacted), ledger.values())
+    val result = ledger.values().single()
+    assertEquals("Home", result.link.rawSsid)
+    assertEquals(true, result.link.cellular)
+    assertEquals("RedactedWifiInfo", result.probe.transportClass)
   }
 
   @Test
@@ -90,15 +125,15 @@ class NetworkObservationLedgerTest {
   }
 
   @Test
-  fun currentNullRefreshRemovesLostCallbackNetwork() {
+  fun currentNullRefreshCannotEraseCallbackObservation() {
     val ledger = NetworkObservationLedger<String>()
-    ledger.observe("wifi", observation("Home"))
+    val callback = observation("Home")
+    ledger.observe("wifi", callback)
     val revision = ledger.beginRefresh("wifi")
 
     ledger.refresh("wifi", revision, null)
-    ledger.refresh("wifi", ledger.beginRefresh("wifi"), observation("Home"))
 
-    assertEquals(emptyList(), ledger.values())
+    assertEquals(listOf(callback), ledger.values())
   }
 
   @Test

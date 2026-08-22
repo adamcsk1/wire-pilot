@@ -38,22 +38,11 @@ class NetworkMonitorServiceRuntimeTest {
     )
   }
 
-  @Test
-  fun destroyStopsLiveMonitoring() {
-    val events = mutableListOf<String>()
-    val runtime = runtime(events)
-
-    runtime.onDestroy()
-
-    assertEquals(listOf("live-stop"), events)
-  }
-
   private fun runtime(events: MutableList<String>): NetworkMonitorServiceRuntime {
     return NetworkMonitorServiceRuntime(
       registerFallbacks = { events += "register" },
       unregisterFallbacks = { events += "unregister" },
       startLive = { events += "live-start" },
-      stopLive = { events += "live-stop" },
       updateNotification = { mode -> events += "notify:${mode.name}" },
       stopService = { startId -> events += "stop:$startId" },
     )

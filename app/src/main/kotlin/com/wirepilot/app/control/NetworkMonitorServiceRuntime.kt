@@ -9,7 +9,6 @@ class NetworkMonitorServiceRuntime(
   private val registerFallbacks: () -> Unit,
   private val unregisterFallbacks: () -> Unit,
   private val startLive: () -> Unit,
-  private val stopLive: () -> Unit,
   private val updateNotification: (NetworkMonitorMode) -> Unit,
   private val stopService: (Int) -> Unit,
 ) {
@@ -23,9 +22,5 @@ class NetworkMonitorServiceRuntime(
     startLive()
     updateNotification(mode)
     return NetworkMonitorServiceStart.STICKY
-  }
-
-  fun onDestroy() {
-    stopLive()
   }
 }

@@ -89,6 +89,8 @@ class AppContainer(
         " source=callback inventory=${inventory.links().size}",
     )
     debouncer.scheduleDebouncedApply()
+  }.also { watcher ->
+    watcher.startLive()
   }
   private val networkMonitorRuntime = NetworkMonitorRuntime(
     registerFallbacks = { networkWatcher.registerFallbacks() },

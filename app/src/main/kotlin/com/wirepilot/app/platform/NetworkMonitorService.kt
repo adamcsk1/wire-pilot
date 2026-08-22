@@ -26,7 +26,6 @@ class NetworkMonitorService : Service() {
       registerFallbacks = { container.networkWatcher.registerFallbacks() },
       unregisterFallbacks = { container.networkWatcher.unregisterFallbacks() },
       startLive = { container.networkWatcher.startLive() },
-      stopLive = { container.networkWatcher.stopLive() },
       updateNotification = {
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification())
       },
@@ -50,11 +49,6 @@ class NetworkMonitorService : Service() {
       NetworkMonitorServiceStart.STICKY -> START_STICKY
       NetworkMonitorServiceStart.NOT_STICKY -> START_NOT_STICKY
     }
-  }
-
-  override fun onDestroy() {
-    runtime.onDestroy()
-    super.onDestroy()
   }
 
   override fun onBind(intent: Intent?): IBinder? = null

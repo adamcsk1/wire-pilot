@@ -65,7 +65,14 @@ internal fun wifiSsidRaw(wifiInfo: WifiInfo?): String? {
   if (wifiInfo == null) {
     return null
   }
-  return runCatching {
-    wifiInfo.javaClass.getMethod("getWifiSsid").invoke(wifiInfo)?.toString()
+  val wifiSsid = runCatching {
+    wifiInfo.javaClass.getMethod("getWifiSsid").invoke(wifiInfo)
+  }.getOrNull() ?: return null
+  val bytes = runCatching {
+    wifiSsid.javaClass.getMethod("getBytes").invoke(wifiSsid) as ByteArray
   }.getOrNull()
+  if (bytes != null && bytes.isNotEmpty()) {
+    return bytes.toString(Charsets.UTF_8)
+  }
+  return wifiSsid.toString().takeIf { text -> text.isNotBlank() }
 }

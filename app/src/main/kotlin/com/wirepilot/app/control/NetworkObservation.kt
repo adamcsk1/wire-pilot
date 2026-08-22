@@ -92,10 +92,7 @@ class NetworkObservationLedger<Key> {
     when (sources[key]) {
       Source.TOMBSTONE -> return
       Source.CALLBACK -> {
-        if (candidate == null) {
-          observations.remove(key)
-          sources[key] = Source.TOMBSTONE
-        } else {
+        if (candidate != null) {
           observations[key]?.let { existing ->
             observations[key] = NetworkObservationMerger.refreshAuthoritative(existing, candidate)
           }
@@ -122,9 +119,11 @@ class NetworkObservationLedger<Key> {
       observations.remove(key)
       sources[key] = Source.TOMBSTONE
     } else {
-      observations[key] = observation
+      val existing = observations[key]
+      val kept = preferReadable(existing, observation)
+      observations[key] = kept
       sources[key] = Source.CALLBACK
-      recordReadable(observation)
+      recordReadable(kept)
     }
   }
 
@@ -155,6 +154,21 @@ class NetworkObservationLedger<Key> {
   @Synchronized
   fun state(): NetworkObservationState {
     return NetworkObservationState(observations.values.toList(), readableRevision)
+  }
+
+  private fun preferReadable(
+    existing: NetworkObservation?,
+    candidate: NetworkObservation,
+  ): NetworkObservation {
+    if (existing == null) {
+      return candidate
+    }
+    val existingReadable = SsidNormalizer.normalize(existing.link.rawSsid) != null
+    val candidateReadable = SsidNormalizer.normalize(candidate.link.rawSsid) != null
+    if (existingReadable && !candidateReadable) {
+      return NetworkObservationMerger.refreshAuthoritative(existing, candidate)
+    }
+    return candidate
   }
 
   private fun newRevision(): Long {

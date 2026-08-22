@@ -17,23 +17,8 @@ class NetworkWatcher(
   private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
   private var fallbacksRegistered = false
   private var liveRegistered = false
-  private val liveCallback = object : ConnectivityManager.NetworkCallback(
-    ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
-  ) {
-    override fun onAvailable(network: Network) {
-      onNetworkChanged()
-    }
-
-    override fun onLost(network: Network) {
-      inventory.remove(network)
-      onNetworkChanged()
-    }
-
-    override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
-      inventory.observeCallback(network, networkCapabilities)
-      onNetworkChanged()
-    }
-  }
+  private val openLiveCallback = LocationAwareCallback(removeOnLost = true)
+  private val wifiLiveCallback = LocationAwareCallback(removeOnLost = false)
 
   @Synchronized
   fun registerFallbacks() {
@@ -56,15 +41,11 @@ class NetworkWatcher(
     if (liveRegistered) {
       return
     }
-    runCatching { connectivityManager.unregisterNetworkCallback(liveCallback) }
-    connectivityManager.registerNetworkCallback(openRequest(), liveCallback)
+    runCatching { connectivityManager.unregisterNetworkCallback(openLiveCallback) }
+    runCatching { connectivityManager.unregisterNetworkCallback(wifiLiveCallback) }
+    connectivityManager.registerNetworkCallback(openRequest(), openLiveCallback)
+    connectivityManager.registerNetworkCallback(wifiRequest(), wifiLiveCallback)
     liveRegistered = true
-  }
-
-  @Synchronized
-  fun stopLive() {
-    runCatching { connectivityManager.unregisterNetworkCallback(liveCallback) }
-    liveRegistered = false
   }
 
   private fun openRequest(): NetworkRequest {
@@ -72,6 +53,34 @@ class NetworkWatcher(
       .clearCapabilities()
       .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
       .build()
+  }
+
+  private fun wifiRequest(): NetworkRequest {
+    return NetworkRequest.Builder()
+      .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+      .build()
+  }
+
+  private inner class LocationAwareCallback(
+    private val removeOnLost: Boolean,
+  ) : ConnectivityManager.NetworkCallback(
+    ConnectivityManager.NetworkCallback.FLAG_INCLUDE_LOCATION_INFO,
+  ) {
+    override fun onAvailable(network: Network) {
+      onNetworkChanged()
+    }
+
+    override fun onLost(network: Network) {
+      if (removeOnLost) {
+        inventory.remove(network)
+      }
+      onNetworkChanged()
+    }
+
+    override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+      inventory.observeCallback(network, networkCapabilities)
+      onNetworkChanged()
+    }
   }
 
   private fun openPendingIntent(): PendingIntent {
