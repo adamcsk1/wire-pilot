@@ -58,6 +58,11 @@ class HomeController(
     val decision = PolicyEvaluator.decide(resolved.copy(excludedSsids = selectedSsids), network())
     val diagnosticState = diagnostics.read()
     val status = StatusPresenter.present(resolved, clock())
+    val controlSelection = ControlSelectionPresenter.present(status)
+    val connectedTunnelName = listOf(resolved.tunnelName, resolved.mobileTunnelName)
+      .firstOrNull { name -> name.isNotBlank() && tunnelState.isUp(name) }
+      .orEmpty()
+    val vpnConnected = connectedTunnelName.isNotBlank()
     val names = catalog.names()
     val split = splitTunnels.read(resolved.tunnelName)
     return HomeViewState(
@@ -79,8 +84,15 @@ class HomeController(
       splitTunnelPackages = split.packages,
       excludedSsids = selectedSsids.sorted(),
       status = status,
-      policyLine = PolicyLinePresenter.present(status, decision, network(), selectedSsids),
-      applyNow = ApplyNowPresenter.present(decision),
+      policyLine = PolicyLinePresenter.present(
+        status,
+        decision,
+        network(),
+        selectedSsids,
+        vpnConnected = vpnConnected,
+        connectedTunnelName = connectedTunnelName,
+      ),
+      applyNow = ApplyNowPresenter.present(decision, controlSelection),
       loggingEnabled = diagnosticState.policyEnabled,
       policyLoggingEnabled = diagnosticState.policyEnabled,
       vpnLoggingEnabled = diagnosticState.vpnEnabled,
@@ -94,9 +106,9 @@ class HomeController(
       ).filter { it.isNotBlank() }.joinToString("\n"),
       connectOnMobile = resolved.mobileTunnelName.isNotBlank(),
       mobileTunnelName = resolved.mobileTunnelName,
-      controlSelection = ControlSelectionPresenter.present(status),
-      vpnConnected = listOf(resolved.tunnelName, resolved.mobileTunnelName)
-        .any { name -> name.isNotBlank() && tunnelState.isUp(name) },
+      controlSelection = controlSelection,
+      vpnConnected = vpnConnected,
+      connectedTunnelName = connectedTunnelName,
     )
   }
 

@@ -61,6 +61,7 @@ class MainActivity : AppCompatActivity() {
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
   ) {
+    (application as WirePilotApp).container.networkMonitorCoordinator.reconcile()
     restartSsidLiveAndRefresh()
   }
 
@@ -102,7 +103,9 @@ class MainActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
-    (application as WirePilotApp).container.restartLiveIfSsidUnreadable()
+    val container = (application as WirePilotApp).container
+    container.networkMonitorCoordinator.reconcile()
+    container.restartLiveIfSsidUnreadable()
     refreshUi()
   }
 
@@ -221,10 +224,11 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun bindApplyNow(state: HomeViewState) {
+    applyNowButton.isVisible = state.applyNow.visible
     applyNowButton.isEnabled = state.applyNow.enabled
     applyNowButton.text = getString(R.string.apply_policy)
     val skipReason = state.applyNow.skipReason
-    if (skipReason == null) {
+    if (!state.applyNow.visible || skipReason == null) {
       applyNowDetail.isVisible = false
     } else {
       applyNowDetail.isVisible = true
@@ -260,7 +264,9 @@ class MainActivity : AppCompatActivity() {
   private fun policyLineText(line: PolicyLine): String {
     return when (line.kind) {
       PolicyLineKind.CONTROL_OFF -> getString(R.string.policy_control_off)
+      PolicyLineKind.CONTROL_OFF_CONNECTED -> getString(R.string.policy_control_off_connected, line.tunnelName)
       PolicyLineKind.PAUSED -> getString(R.string.policy_paused)
+      PolicyLineKind.PAUSED_CONNECTED -> getString(R.string.policy_paused_connected, line.tunnelName)
       PolicyLineKind.NO_TUNNEL -> getString(R.string.policy_no_tunnel)
       PolicyLineKind.WIFI_UNREADABLE -> getString(R.string.policy_wifi_unreadable)
       PolicyLineKind.WIFI_EXCLUDED_DOWN -> getString(R.string.policy_wifi_excluded, line.ssid)

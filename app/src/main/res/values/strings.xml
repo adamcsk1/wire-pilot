@@ -3,11 +3,11 @@
   <string name="status_watching">Watching networks</string>
   <string name="status_watching_detail">Tunnel follows SSID rules after network changes and boot.</string>
   <string name="monitor_notification_title">WirePilot is active</string>
-  <string name="monitor_notification_watching">Monitoring network changes</string>
+  <string name="monitor_notification_watching">Monitoring network names for VPN rules</string>
   <string name="monitor_channel_name">Network monitoring</string>
   <string name="monitor_channel_description">Keeps automatic VPN control responsive to network changes</string>
   <string name="status_disabled">Control off</string>
-  <string name="status_disabled_detail">The tunnel stays down until you turn control back on.</string>
+  <string name="status_disabled_detail">Automatic rules are off. Use Connect VPN if you want the tunnel up.</string>
   <string name="status_paused">Control paused</string>
   <string name="status_paused_detail">Turns back on in %1$d h %2$d min.</string>
   <string name="tunnel_section">VPN tunnel</string>
@@ -108,7 +108,9 @@
   <string name="apply_now">Apply now</string>
   <string name="apply_policy">Apply policy</string>
   <string name="policy_control_off">VPN down · control off</string>
+  <string name="policy_control_off_connected">VPN connected · %1$s</string>
   <string name="policy_paused">VPN down · control paused</string>
+  <string name="policy_paused_connected">VPN connected · %1$s</string>
   <string name="policy_no_tunnel">Import a tunnel first</string>
   <string name="policy_wifi_unreadable">Waiting · can’t read this network name</string>
   <string name="policy_wifi_excluded">VPN down · skipped SSID %1$s</string>

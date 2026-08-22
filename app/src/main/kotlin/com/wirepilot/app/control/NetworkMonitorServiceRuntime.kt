@@ -8,7 +8,7 @@ enum class NetworkMonitorServiceStart {
 class NetworkMonitorServiceRuntime(
   private val registerFallbacks: () -> Unit,
   private val unregisterFallbacks: () -> Unit,
-  private val startLive: () -> Unit,
+  private val restartLive: () -> Unit,
   private val updateNotification: (NetworkMonitorMode) -> Unit,
   private val stopService: (Int) -> Unit,
 ) {
@@ -19,7 +19,7 @@ class NetworkMonitorServiceRuntime(
       return NetworkMonitorServiceStart.NOT_STICKY
     }
     registerFallbacks()
-    startLive()
+    restartLive()
     updateNotification(mode)
     return NetworkMonitorServiceStart.STICKY
   }

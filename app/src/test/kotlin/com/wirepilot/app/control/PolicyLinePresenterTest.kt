@@ -29,6 +29,34 @@ class PolicyLinePresenterTest {
   }
 
   @Test
+  fun controlOffConnectedWhenDisabledAndUp() {
+    assertEquals(
+      PolicyLine(PolicyLineKind.CONTROL_OFF_CONNECTED, "office"),
+      PolicyLinePresenter.present(
+        StatusPresentation.Disabled,
+        PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
+        NetworkSnapshot(NetworkKind.MOBILE),
+        vpnConnected = true,
+        connectedTunnelName = "office",
+      ),
+    )
+  }
+
+  @Test
+  fun blankTunnelWinsOverDisabledConnected() {
+    assertEquals(
+      PolicyLine(PolicyLineKind.NO_TUNNEL),
+      PolicyLinePresenter.present(
+        StatusPresentation.Disabled,
+        PolicyDecision.Skip(SkipReason.BLANK_TUNNEL_NAME),
+        NetworkSnapshot(NetworkKind.MOBILE),
+        vpnConnected = true,
+        connectedTunnelName = "office",
+      ),
+    )
+  }
+
+  @Test
   fun pausedIgnoresNetwork() {
     assertEquals(
       PolicyLine(PolicyLineKind.PAUSED),
@@ -36,6 +64,20 @@ class PolicyLinePresenterTest {
         StatusPresentation.Paused(10L),
         PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
         NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
+      ),
+    )
+  }
+
+  @Test
+  fun pausedConnectedWhenUp() {
+    assertEquals(
+      PolicyLine(PolicyLineKind.PAUSED_CONNECTED, "office"),
+      PolicyLinePresenter.present(
+        StatusPresentation.Paused(10L),
+        PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
+        NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
+        vpnConnected = true,
+        connectedTunnelName = "office",
       ),
     )
   }

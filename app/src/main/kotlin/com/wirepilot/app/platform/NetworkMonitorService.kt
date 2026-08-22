@@ -1,5 +1,6 @@
 package com.wirepilot.app.platform
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -17,6 +18,7 @@ import com.wirepilot.app.WirePilotApp
 import com.wirepilot.app.control.NetworkMonitorMode
 import com.wirepilot.app.control.NetworkMonitorServiceRuntime
 import com.wirepilot.app.control.NetworkMonitorServiceStart
+import com.wirepilot.app.ui.AppPermissions
 
 class NetworkMonitorService : Service() {
   private val container
@@ -25,7 +27,7 @@ class NetworkMonitorService : Service() {
     NetworkMonitorServiceRuntime(
       registerFallbacks = { container.networkWatcher.registerFallbacks() },
       unregisterFallbacks = { container.networkWatcher.unregisterFallbacks() },
-      startLive = { container.networkWatcher.startLive() },
+      restartLive = { container.networkWatcher.restartLive() },
       updateNotification = {
         getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification())
       },
@@ -36,14 +38,11 @@ class NetworkMonitorService : Service() {
   override fun onCreate() {
     super.onCreate()
     ensureChannel()
-    startForeground(
-      NOTIFICATION_ID,
-      notification(),
-      ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-    )
+    enterForeground()
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    enterForeground()
     val mode = container.networkMonitorCoordinator.currentMode()
     return when (runtime.onStart(mode, startId)) {
       NetworkMonitorServiceStart.STICKY -> START_STICKY
@@ -52,6 +51,33 @@ class NetworkMonitorService : Service() {
   }
 
   override fun onBind(intent: Intent?): IBinder? = null
+
+  private fun enterForeground() {
+    try {
+      startForeground(NOTIFICATION_ID, notification(), foregroundTypes())
+    } catch (_: SecurityException) {
+      enterSpecialUseForeground()
+    } catch (_: ForegroundServiceStartNotAllowedException) {
+      enterSpecialUseForeground()
+    }
+  }
+
+  private fun enterSpecialUseForeground() {
+    startForeground(
+      NOTIFICATION_ID,
+      notification(),
+      ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+    )
+  }
+
+  private fun foregroundTypes(): Int {
+    val types = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+    return if (AppPermissions.fineLocationGranted(this)) {
+      types or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+    } else {
+      types
+    }
+  }
 
   private fun ensureChannel() {
     val channel = NotificationChannel(

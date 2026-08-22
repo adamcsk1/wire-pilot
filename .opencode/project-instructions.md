@@ -22,7 +22,7 @@ Policy:
 - Read SSID from every `TRANSPORT_WIFI` network, never only `activeNetwork`
 - Network change and boot wait 3 seconds, then apply once
 - Timed pause expiry applies immediately
-- A special-use foreground service keeps event-driven network monitoring alive while control is enabled or timed-paused
+- A special-use|location foreground service keeps event-driven network monitoring alive while control is enabled or timed-paused so SSID stays readable without opening the UI
 - No polling or battery-optimization prompt
 
 ## Layout

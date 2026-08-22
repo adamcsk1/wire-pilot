@@ -17,6 +17,7 @@ import com.wirepilot.app.support.RecordingTunnel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class HomeControllerTest {
@@ -68,6 +69,7 @@ class HomeControllerTest {
     assertEquals(PolicyLine(PolicyLineKind.MOBILE_DOWN, "office"), state.policyLine)
     assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
     assertTrue(state.applyNow.enabled)
+    assertTrue(state.applyNow.visible)
     assertFalse(state.connectOnMobile)
     assertEquals(ControlSelection.ON, state.controlSelection)
     assertFalse(state.policyLoggingEnabled)
@@ -85,6 +87,7 @@ class HomeControllerTest {
     assertEquals(PolicyLine(PolicyLineKind.WIFI_EXCLUDED_DOWN, "office", "Home"), state.policyLine)
     assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
     assertTrue(state.applyNow.enabled)
+    assertTrue(state.applyNow.visible)
   }
 
   @Test
@@ -110,8 +113,33 @@ class HomeControllerTest {
     val (home) = controller(StoredControl(enabled = false, tunnelName = "office"))
     val state = home.viewState()
     assertEquals(PolicyLine(PolicyLineKind.CONTROL_OFF), state.policyLine)
-    assertEquals(ApplyNowAction.APPLY, state.applyNow.action)
-    assertTrue(state.applyNow.enabled)
+    assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
+    assertFalse(state.applyNow.enabled)
+    assertFalse(state.applyNow.visible)
+  }
+
+  @Test
+  fun viewStateShowsConnectedWhenDisabledAndTunnelUp() {
+    val (home) = controller(
+      StoredControl(enabled = false, tunnelName = "office"),
+      tunnelState = TunnelStatePort { name -> name == "office" },
+    )
+    val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.CONTROL_OFF_CONNECTED, "office"), state.policyLine)
+    assertTrue(state.vpnConnected)
+    assertEquals("office", state.connectedTunnelName)
+    assertFalse(state.applyNow.visible)
+  }
+
+  @Test
+  fun viewStateShowsConnectedWhenDisabledAndMobileUp() {
+    val (home) = controller(
+      StoredControl(enabled = false, tunnelName = "office", mobileTunnelName = "travel"),
+      tunnelState = TunnelStatePort { name -> name == "travel" },
+    )
+    val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.CONTROL_OFF_CONNECTED, "travel"), state.policyLine)
+    assertEquals("travel", state.connectedTunnelName)
   }
 
   @Test
@@ -119,16 +147,42 @@ class HomeControllerTest {
     val (home) = controller(
       StoredControl(enabled = false, pausedUntilEpochMillis = now + 60_000L, tunnelName = "office"),
     )
-    assertEquals(PolicyLine(PolicyLineKind.PAUSED), home.viewState().policyLine)
+    val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.PAUSED), state.policyLine)
+    assertFalse(state.applyNow.visible)
   }
 
   @Test
-  fun viewStateDisablesApplyNowWhenTunnelBlank() {
+  fun viewStateShowsConnectedWhenPausedAndTunnelUp() {
+    val (home) = controller(
+      StoredControl(enabled = false, pausedUntilEpochMillis = now + 60_000L, tunnelName = "office"),
+      tunnelState = TunnelStatePort { name -> name == "office" },
+    )
+    assertEquals(
+      PolicyLine(PolicyLineKind.PAUSED_CONNECTED, "office"),
+      home.viewState().policyLine,
+    )
+  }
+
+  @Test
+  fun viewStateHidesApplyNowWhenDisabledAndTunnelBlank() {
     val (home) = controller(StoredControl(enabled = false, tunnelName = ""))
     val state = home.viewState()
     assertEquals(PolicyLine(PolicyLineKind.NO_TUNNEL), state.policyLine)
     assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
     assertFalse(state.applyNow.enabled)
+    assertFalse(state.applyNow.visible)
+    assertNull(state.applyNow.skipReason)
+  }
+
+  @Test
+  fun viewStateDisablesApplyNowWhenWatchingWithoutTunnel() {
+    val (home) = controller(StoredControl(tunnelName = ""))
+    val state = home.viewState()
+    assertEquals(PolicyLine(PolicyLineKind.NO_TUNNEL), state.policyLine)
+    assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
+    assertFalse(state.applyNow.enabled)
+    assertTrue(state.applyNow.visible)
     assertEquals(SkipReason.BLANK_TUNNEL_NAME, state.applyNow.skipReason)
   }
 
@@ -611,7 +665,9 @@ class HomeControllerTest {
       StoredControl(tunnelName = "office"),
       tunnelState = TunnelStatePort { name -> name == "office" },
     )
-    assertTrue(home.viewState().vpnConnected)
+    val state = home.viewState()
+    assertTrue(state.vpnConnected)
+    assertEquals("office", state.connectedTunnelName)
   }
 
   @Test
@@ -620,13 +676,17 @@ class HomeControllerTest {
       StoredControl(tunnelName = ""),
       tunnelState = TunnelStatePort { true },
     )
-    assertFalse(home.viewState().vpnConnected)
+    val state = home.viewState()
+    assertFalse(state.vpnConnected)
+    assertEquals("", state.connectedTunnelName)
   }
 
   @Test
   fun vpnConnectedFalseWhenTunnelDown() {
     val (home) = controller(StoredControl(tunnelName = "office"))
-    assertFalse(home.viewState().vpnConnected)
+    val state = home.viewState()
+    assertFalse(state.vpnConnected)
+    assertEquals("", state.connectedTunnelName)
   }
 
   @Test

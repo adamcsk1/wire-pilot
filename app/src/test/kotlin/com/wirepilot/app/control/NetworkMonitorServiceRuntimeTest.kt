@@ -16,7 +16,7 @@ class NetworkMonitorServiceRuntimeTest {
   }
 
   @Test
-  fun watchingAndPausedModesStartLiveMonitoringAndStaySticky() {
+  fun watchingAndPausedModesRestartLiveMonitoringAndStaySticky() {
     val events = mutableListOf<String>()
     val runtime = runtime(events)
 
@@ -28,10 +28,10 @@ class NetworkMonitorServiceRuntimeTest {
     assertEquals(
       listOf(
         "register",
-        "live-start",
+        "live-restart",
         "notify:WATCHING",
         "register",
-        "live-start",
+        "live-restart",
         "notify:PAUSED",
       ),
       events,
@@ -42,7 +42,7 @@ class NetworkMonitorServiceRuntimeTest {
     return NetworkMonitorServiceRuntime(
       registerFallbacks = { events += "register" },
       unregisterFallbacks = { events += "unregister" },
-      startLive = { events += "live-start" },
+      restartLive = { events += "live-restart" },
       updateNotification = { mode -> events += "notify:${mode.name}" },
       stopService = { startId -> events += "stop:$startId" },
     )

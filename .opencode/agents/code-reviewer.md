@@ -17,7 +17,7 @@ Review the changed files. Check each one against the rules below and report find
 - Never persist plaintext private keys; never log private keys; never `Log.d` policy/SSID/probe
 - Policy: excluded SSID down; otherwise up; skip when SSID unreadable unless last-known is within 60s; Off/Pause downs the default and mobile tunnels; cellular UPs the one designated mobile tunnel or DOWN if none
 - 3s debounce on network/boot; immediate apply on pause expiry
-- No polling or ignore-battery-optimizations
+- No polling or ignore-battery-optimizations; monitoring FGS is `specialUse|location` so SSID is readable while watching
 - Pure logic in `control/` and `data/`
 - Tests cover new branches
 - Coverage gate remains >= 95% for those packages

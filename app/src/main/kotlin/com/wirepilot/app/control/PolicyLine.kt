@@ -2,7 +2,9 @@ package com.wirepilot.app.control
 
 enum class PolicyLineKind {
   CONTROL_OFF,
+  CONTROL_OFF_CONNECTED,
   PAUSED,
+  PAUSED_CONNECTED,
   NO_TUNNEL,
   WIFI_UNREADABLE,
   WIFI_EXCLUDED_DOWN,
@@ -24,18 +26,43 @@ object PolicyLinePresenter {
     decision: PolicyDecision,
     network: NetworkSnapshot,
     excludedSsids: Set<String> = emptySet(),
+    vpnConnected: Boolean = false,
+    connectedTunnelName: String = "",
   ): PolicyLine {
     if (isBlankTunnel(decision)) {
       return PolicyLine(PolicyLineKind.NO_TUNNEL)
     }
     when (status) {
-      StatusPresentation.Disabled -> return PolicyLine(PolicyLineKind.CONTROL_OFF)
-      is StatusPresentation.Paused -> return PolicyLine(PolicyLineKind.PAUSED)
+      StatusPresentation.Disabled -> return offOrPausedLine(
+        connected = vpnConnected,
+        connectedKind = PolicyLineKind.CONTROL_OFF_CONNECTED,
+        downKind = PolicyLineKind.CONTROL_OFF,
+        connectedTunnelName = connectedTunnelName,
+      )
+      is StatusPresentation.Paused -> return offOrPausedLine(
+        connected = vpnConnected,
+        connectedKind = PolicyLineKind.PAUSED_CONNECTED,
+        downKind = PolicyLineKind.PAUSED,
+        connectedTunnelName = connectedTunnelName,
+      )
       StatusPresentation.Watching -> Unit
     }
     return when (decision) {
       is PolicyDecision.Skip -> skipLine(decision.reason)
       is PolicyDecision.Apply -> applyLine(decision, network, excludedSsids)
+    }
+  }
+
+  private fun offOrPausedLine(
+    connected: Boolean,
+    connectedKind: PolicyLineKind,
+    downKind: PolicyLineKind,
+    connectedTunnelName: String,
+  ): PolicyLine {
+    return if (connected) {
+      PolicyLine(connectedKind, connectedTunnelName)
+    } else {
+      PolicyLine(downKind)
     }
   }
 

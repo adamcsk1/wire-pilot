@@ -24,4 +24,5 @@ data class HomeViewState(
   val mobileTunnelName: String = "",
   val controlSelection: ControlSelection,
   val vpnConnected: Boolean = false,
+  val connectedTunnelName: String = "",
 )

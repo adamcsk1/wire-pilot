@@ -22,7 +22,7 @@ You are the architecture advisor for WirePilot.
 - Embed official `com.wireguard.android:tunnel` (`GoBackend` + `GoBackend.VpnService`)
 - Control the active imported tunnel through `GoBackend.setState`
 - No official-app broadcasts
-- Special-use foreground service only for event-driven network monitoring while control is enabled or timed-paused; no polling or battery-optimization prompt
+- Special-use|location foreground service only for event-driven network monitoring while control is enabled or timed-paused so SSID stays readable; no polling or battery-optimization prompt
 - SSID from all Wi-Fi networks
 - Android glue stays thin so JVM tests can cover decisions
 - Never persist plaintext private keys
