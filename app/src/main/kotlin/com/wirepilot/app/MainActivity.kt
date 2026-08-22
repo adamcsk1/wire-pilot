@@ -52,11 +52,16 @@ class MainActivity : AppCompatActivity() {
       refreshUi()
     }
   }
+  private val onNetworkUi = {
+    if (!isDestroyed) {
+      refreshUi()
+    }
+  }
 
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
   ) {
-    refreshUi()
+    restartSsidLiveAndRefresh()
   }
 
   private val vpnPrepareLauncher = registerForActivityResult(
@@ -90,16 +95,21 @@ class MainActivity : AppCompatActivity() {
 
   override fun onStart() {
     super.onStart()
-    (application as WirePilotApp).container.tunnel.addSettledListener(onTunnelSettled)
+    val container = (application as WirePilotApp).container
+    container.tunnel.addSettledListener(onTunnelSettled)
+    container.addNetworkUiListener(onNetworkUi)
   }
 
   override fun onResume() {
     super.onResume()
+    (application as WirePilotApp).container.restartLiveIfSsidUnreadable()
     refreshUi()
   }
 
   override fun onStop() {
-    (application as WirePilotApp).container.tunnel.removeSettledListener(onTunnelSettled)
+    val container = (application as WirePilotApp).container
+    container.removeNetworkUiListener(onNetworkUi)
+    container.tunnel.removeSettledListener(onTunnelSettled)
     super.onStop()
   }
 
@@ -171,6 +181,11 @@ class MainActivity : AppCompatActivity() {
         refreshUi()
       }
     }
+  }
+
+  private fun restartSsidLiveAndRefresh() {
+    (application as WirePilotApp).container.networkWatcher.restartLive()
+    refreshUi()
   }
 
   private fun refreshUi() {

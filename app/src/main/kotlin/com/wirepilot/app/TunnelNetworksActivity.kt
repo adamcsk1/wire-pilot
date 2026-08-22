@@ -31,11 +31,16 @@ class TunnelNetworksActivity : AppCompatActivity() {
   private lateinit var addCurrentButton: MaterialButton
   private lateinit var connectOnMobileSwitch: MaterialSwitch
   private var suppressMobileSwitch = false
+  private val onNetworkUi = {
+    if (!isDestroyed) {
+      refreshUi()
+    }
+  }
 
   private val permissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestMultiplePermissions(),
   ) {
-    refreshUi()
+    restartSsidLiveAndRefresh()
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,8 +72,24 @@ class TunnelNetworksActivity : AppCompatActivity() {
     }
   }
 
+  override fun onStart() {
+    super.onStart()
+    (application as WirePilotApp).container.addNetworkUiListener(onNetworkUi)
+  }
+
   override fun onResume() {
     super.onResume()
+    (application as WirePilotApp).container.restartLiveIfSsidUnreadable()
+    refreshUi()
+  }
+
+  override fun onStop() {
+    (application as WirePilotApp).container.removeNetworkUiListener(onNetworkUi)
+    super.onStop()
+  }
+
+  private fun restartSsidLiveAndRefresh() {
+    (application as WirePilotApp).container.networkWatcher.restartLive()
     refreshUi()
   }
 

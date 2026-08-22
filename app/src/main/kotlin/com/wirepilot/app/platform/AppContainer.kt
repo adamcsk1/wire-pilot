@@ -24,6 +24,7 @@ import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.ThemeModeStore
 import com.wirepilot.app.data.TunnelCatalog
+import java.util.concurrent.CopyOnWriteArraySet
 
 class AppContainer(
   context: Context,
@@ -81,6 +82,7 @@ class AppContainer(
     scheduleStore = SharedPreferencesDebounceScheduleStore(preferences),
     log = logger,
   )
+  private val networkUiListeners = CopyOnWriteArraySet<() -> Unit>()
   val networkWatcher = NetworkWatcher(appContext, inventory) {
     val snapshot = ssidReader.snapshot()
     logger.record(
@@ -89,8 +91,24 @@ class AppContainer(
         " source=callback inventory=${inventory.links().size}",
     )
     debouncer.scheduleDebouncedApply()
+    networkUiListeners.forEach { listener -> listener() }
   }.also { watcher ->
     watcher.startLive()
+  }
+
+  fun addNetworkUiListener(listener: () -> Unit) {
+    networkUiListeners.add(listener)
+  }
+
+  fun removeNetworkUiListener(listener: () -> Unit) {
+    networkUiListeners.remove(listener)
+  }
+
+  fun restartLiveIfSsidUnreadable() {
+    val snapshot = ssidReader.snapshot()
+    if (snapshot.connectedToWifi && snapshot.wifiSsids.isEmpty()) {
+      networkWatcher.restartLive()
+    }
   }
   private val networkMonitorRuntime = NetworkMonitorRuntime(
     registerFallbacks = { networkWatcher.registerFallbacks() },

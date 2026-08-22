@@ -7,6 +7,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.os.Handler
+import android.os.Looper
 import com.wirepilot.app.receiver.NetworkChangeReceiver
 
 class NetworkWatcher(
@@ -15,6 +17,7 @@ class NetworkWatcher(
   private val onNetworkChanged: () -> Unit,
 ) {
   private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+  private val callbackHandler = Handler(Looper.getMainLooper())
   private var fallbacksRegistered = false
   private var liveRegistered = false
   private val openLiveCallback = LocationAwareCallback(removeOnLost = true)
@@ -41,11 +44,22 @@ class NetworkWatcher(
     if (liveRegistered) {
       return
     }
+    registerLiveCallbacks()
+    liveRegistered = true
+  }
+
+  @Synchronized
+  fun restartLive() {
+    liveRegistered = false
+    registerLiveCallbacks()
+    liveRegistered = true
+  }
+
+  private fun registerLiveCallbacks() {
     runCatching { connectivityManager.unregisterNetworkCallback(openLiveCallback) }
     runCatching { connectivityManager.unregisterNetworkCallback(wifiLiveCallback) }
-    connectivityManager.registerNetworkCallback(openRequest(), openLiveCallback)
-    connectivityManager.registerNetworkCallback(wifiRequest(), wifiLiveCallback)
-    liveRegistered = true
+    connectivityManager.registerNetworkCallback(openRequest(), openLiveCallback, callbackHandler)
+    connectivityManager.registerNetworkCallback(wifiRequest(), wifiLiveCallback, callbackHandler)
   }
 
   private fun openRequest(): NetworkRequest {
@@ -57,6 +71,8 @@ class NetworkWatcher(
 
   private fun wifiRequest(): NetworkRequest {
     return NetworkRequest.Builder()
+      .clearCapabilities()
+      .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
       .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
       .build()
   }

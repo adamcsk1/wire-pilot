@@ -47,26 +47,38 @@ class NetworkInventory {
   fun state(): NetworkObservationState = observations.state()
 
   private fun observation(capabilities: NetworkCapabilities): NetworkObservation? {
-    val wifiInfo = capabilities.transportInfo as? WifiInfo
+    val transportInfo = capabilities.transportInfo
     return NetworkObservationProjector.project(
       NetworkTransportObservation(
         wifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI),
         cellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
         vpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN),
-        transportClass = capabilities.transportInfo?.javaClass?.simpleName ?: "null",
-        ssidRaw = wifiInfo?.ssid,
-        wifiSsidRaw = wifiSsidRaw(wifiInfo),
+        transportClass = transportInfo?.javaClass?.simpleName ?: "null",
+        ssidRaw = transportSsidRaw(transportInfo),
+        wifiSsidRaw = wifiSsidRaw(transportInfo),
       ),
     )
   }
 }
 
-internal fun wifiSsidRaw(wifiInfo: WifiInfo?): String? {
-  if (wifiInfo == null) {
+internal fun transportSsidRaw(transportInfo: Any?): String? {
+  if (transportInfo == null) {
+    return null
+  }
+  (transportInfo as? WifiInfo)?.ssid?.let { ssid ->
+    return ssid
+  }
+  return runCatching {
+    transportInfo.javaClass.getMethod("getSSID").invoke(transportInfo) as? String
+  }.getOrNull()
+}
+
+internal fun wifiSsidRaw(source: Any?): String? {
+  if (source == null) {
     return null
   }
   val wifiSsid = runCatching {
-    wifiInfo.javaClass.getMethod("getWifiSsid").invoke(wifiInfo)
+    source.javaClass.getMethod("getWifiSsid").invoke(source)
   }.getOrNull() ?: return null
   val bytes = runCatching {
     wifiSsid.javaClass.getMethod("getBytes").invoke(wifiSsid) as ByteArray
