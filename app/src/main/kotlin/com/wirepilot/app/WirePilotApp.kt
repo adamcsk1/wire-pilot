@@ -26,6 +26,7 @@ class WirePilotApp : Application() {
     GoBackend.setAlwaysOnCallback {
       container.debouncer.scheduleDebouncedApply()
     }
+    container.networkMonitorCoordinator.reconcile()
     container.debouncer.scheduleProcessStartApply()
   }
 }
