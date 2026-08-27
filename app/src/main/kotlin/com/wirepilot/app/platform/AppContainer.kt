@@ -156,7 +156,7 @@ class AppContainer(
   )
   val pauseExpiryCoordinator = PauseExpiryCoordinator(
     applyRunner,
-    onApplied = { networkMonitorCoordinator.reconcileWithoutServiceStart() },
+    onApplied = { networkMonitorCoordinator.reconcile() },
   )
 
   fun runDebouncedApply(trigger: String, onSettled: () -> Unit = {}): () -> Unit {

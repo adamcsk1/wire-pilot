@@ -132,19 +132,6 @@ class NetworkMonitorCoordinatorTest {
     assertEquals(0, store.writeCount)
   }
 
-  @Test
-  fun reconcileWithoutServiceStartAppliesModeAsFallbackOnly() {
-    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
-    val applied = mutableListOf<Pair<NetworkMonitorMode, Boolean>>()
-    val coordinator = NetworkMonitorCoordinator(store, { now }) { mode, allowServiceStart ->
-      applied += mode to allowServiceStart
-    }
-
-    coordinator.reconcileWithoutServiceStart()
-
-    assertEquals(listOf(NetworkMonitorMode.WATCHING to false), applied)
-  }
-
   private class CountingControlStore(initial: StoredControl) : ControlStore {
     private var control = initial
     var writeCount = 0

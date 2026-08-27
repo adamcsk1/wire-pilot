@@ -39,10 +39,6 @@ class NetworkMonitorCoordinator(
     applyMode(currentMode(), true)
   }
 
-  fun reconcileWithoutServiceStart() {
-    applyMode(currentMode(), false)
-  }
-
   fun currentMode(): NetworkMonitorMode {
     val nowMillis = clock()
     val current = store.read()
