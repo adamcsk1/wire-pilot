@@ -2,6 +2,7 @@ package com.wirepilot.app.platform
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.wirepilot.app.control.ControlEnabledMigrator
 import com.wirepilot.app.data.ControlCodec
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.StoredControl
@@ -14,7 +15,14 @@ class SharedPreferencesControlStore(
     val tunnelName = preferences.getString(PreferenceKeys.TUNNEL_NAME, "").orEmpty()
     val mobileTunnelName = readMobileTunnelName(preferences, tunnelName)
     return StoredControl(
-      enabled = preferences.getBoolean(PreferenceKeys.ENABLED, false),
+      enabled = ControlEnabledMigrator.enabled(
+        hasEnabledKey = preferences.contains(PreferenceKeys.ENABLED),
+        storedEnabled = preferences.getBoolean(PreferenceKeys.ENABLED, false),
+        hasPriorControlState = tunnelName.isNotBlank() ||
+          pausedUntil > 0L ||
+          preferences.contains(PreferenceKeys.MOBILE_TUNNEL_NAME) ||
+          preferences.contains(PreferenceKeys.CONNECT_ON_MOBILE),
+      ),
       pausedUntilEpochMillis = pausedUntil.takeIf { it > 0L },
       tunnelName = tunnelName,
       excludedSsids = ControlCodec.decodeSsids(preferences.getString(PreferenceKeys.EXCLUDED_SSIDS, "")),
