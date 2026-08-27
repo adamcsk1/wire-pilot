@@ -7,17 +7,6 @@ object SsidRedactor {
   private const val HMAC_ALGORITHM = "HmacSHA256"
   private const val KEY_BYTES = 32
 
-  @Volatile
-  private var installedKey: ByteArray = ByteArray(0)
-
-  fun installKey(key: ByteArray) {
-    installedKey = key.copyOf()
-  }
-
-  fun redact(value: String): String {
-    return redact(value, installedKey)
-  }
-
   fun redact(value: String, key: ByteArray): String {
     val secret = if (key.size == KEY_BYTES) key else ByteArray(KEY_BYTES)
     val mac = Mac.getInstance(HMAC_ALGORITHM)
@@ -27,7 +16,7 @@ object SsidRedactor {
     return "h$hex"
   }
 
-  fun redactNullable(value: String?): String {
-    return if (value == null) "null" else redact(value)
+  fun redactNullable(value: String?, key: ByteArray): String {
+    return if (value == null) "null" else redact(value, key)
   }
 }

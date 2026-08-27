@@ -13,7 +13,7 @@ class NetworkChangeReceiver : BroadcastReceiver() {
     val snapshot = application.container.ssidReader.snapshot()
     application.container.logger.record(
       LogKind.NETWORK_CHANGE,
-      LogFormatter.networkChangeDetail(snapshot) + " source=broadcast",
+      LogFormatter.networkChangeDetail(snapshot, application.container.ssidHmacKey) + " source=broadcast",
     )
     application.container.networkChangeCoordinator.onNetworkChanged()
   }

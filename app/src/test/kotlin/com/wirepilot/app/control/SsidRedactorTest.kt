@@ -5,19 +5,21 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 class SsidRedactorTest {
+  private val zeroKey = ByteArray(0)
+
   @Test
   fun hashesSameNameTheSame() {
-    assertEquals(SsidRedactor.redact("Home"), SsidRedactor.redact("Home"))
+    assertEquals(SsidRedactor.redact("Home", zeroKey), SsidRedactor.redact("Home", zeroKey))
   }
 
   @Test
   fun differentNamesHashDifferently() {
-    assertNotEquals(SsidRedactor.redact("Home"), SsidRedactor.redact("Cafe"))
+    assertNotEquals(SsidRedactor.redact("Home", zeroKey), SsidRedactor.redact("Cafe", zeroKey))
   }
 
   @Test
   fun doesNotContainOriginalName() {
-    val redacted = SsidRedactor.redact("HomeWifi")
+    val redacted = SsidRedactor.redact("HomeWifi", zeroKey)
     assertEquals(false, redacted.contains("HomeWifi"))
     assertEquals(true, redacted.startsWith("h"))
     assertEquals(13, redacted.length)
@@ -26,8 +28,8 @@ class SsidRedactorTest {
 
   @Test
   fun nullBecomesLiteralNull() {
-    assertEquals("null", SsidRedactor.redactNullable(null))
-    assertEquals(SsidRedactor.redact("Home"), SsidRedactor.redactNullable("Home"))
+    assertEquals("null", SsidRedactor.redactNullable(null, zeroKey))
+    assertEquals(SsidRedactor.redact("Home", zeroKey), SsidRedactor.redactNullable("Home", zeroKey))
   }
 
   @Test
@@ -39,15 +41,7 @@ class SsidRedactorTest {
   }
 
   @Test
-  fun installedKeyIsUsed() {
-    val previous = SsidRedactor.redact("Home")
-    SsidRedactor.installKey(ByteArray(32) { 3 })
-    try {
-      val installed = SsidRedactor.redact("Home")
-      assertEquals(SsidRedactor.redact("Home", ByteArray(32) { 3 }), installed)
-      assertNotEquals(previous, installed)
-    } finally {
-      SsidRedactor.installKey(ByteArray(0))
-    }
+  fun undersizedKeyUsesZeroSecret() {
+    assertEquals(SsidRedactor.redact("Home", ByteArray(0)), SsidRedactor.redact("Home", ByteArray(31)))
   }
 }

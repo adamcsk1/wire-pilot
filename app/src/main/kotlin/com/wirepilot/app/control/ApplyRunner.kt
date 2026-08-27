@@ -11,6 +11,7 @@ class ApplyRunner(
   private val tunnel: TunnelCommands,
   private val log: DiagnosticLog = NoOpDiagnosticLog,
   private val excludedSsidsFor: (String) -> Set<String>? = { null },
+  private val hmacKey: ByteArray = ByteArray(0),
 ) {
   fun applyNow(trigger: String = "apply") {
     val nowMillis = clock()
@@ -36,6 +37,7 @@ class ApplyRunner(
         control = forPolicy,
         network = snapshot,
         decision = decision,
+        hmacKey = hmacKey,
       ),
     )
     when (decision) {

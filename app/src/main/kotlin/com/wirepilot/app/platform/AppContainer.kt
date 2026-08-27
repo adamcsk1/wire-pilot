@@ -16,7 +16,6 @@ import com.wirepilot.app.control.NetworkMonitorCoordinator
 import com.wirepilot.app.control.NetworkMonitorRuntime
 import com.wirepilot.app.control.PauseExpiryCoordinator
 import com.wirepilot.app.control.PauseRescheduler
-import com.wirepilot.app.control.SsidRedactor
 import com.wirepilot.app.data.ControlStore
 import com.wirepilot.app.data.DiagnosticStore
 import com.wirepilot.app.data.ExcludedSsidStore
@@ -31,9 +30,7 @@ class AppContainer(
   private val appContext = context.applicationContext
   private val preferences = appContext.getSharedPreferences(PreferenceKeys.FILE, Context.MODE_PRIVATE)
   private val encryptedSsids = EncryptedSsidPreferences.create(appContext)
-  private val ssidHmacKey = EncryptedSsidHmacStore(appContext).getOrCreate().also { key ->
-    SsidRedactor.installKey(key)
-  }
+  val ssidHmacKey = EncryptedSsidHmacStore(appContext).getOrCreate()
   val store: ControlStore = SharedPreferencesControlStore(preferences)
   val diagnostics: DiagnosticStore = SharedPreferencesDiagnosticStore(preferences)
   val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
@@ -71,6 +68,7 @@ class AppContainer(
     tunnel = tunnel,
     log = logger,
     excludedSsidsFor = { name -> excludedSsids.read(name) },
+    hmacKey = ssidHmacKey,
   )
   val debouncer = ReceiverDebouncer(
     alarms = alarms,
@@ -83,7 +81,7 @@ class AppContainer(
     val snapshot = ssidReader.snapshot()
     logger.record(
       LogKind.NETWORK_CHANGE,
-      LogFormatter.networkChangeDetail(snapshot) +
+      LogFormatter.networkChangeDetail(snapshot, ssidHmacKey) +
         " source=callback inventory=${inventory.links().size}",
     )
     debouncer.scheduleDebouncedApply()

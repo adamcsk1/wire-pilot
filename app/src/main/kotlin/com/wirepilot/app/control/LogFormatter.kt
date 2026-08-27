@@ -26,6 +26,7 @@ object LogFormatter {
     control: StoredControl,
     network: NetworkSnapshot,
     decision: PolicyDecision,
+    hmacKey: ByteArray = ByteArray(0),
   ): String {
     val apply = when (decision) {
       is PolicyDecision.Skip -> "skip/${decision.reason.name}"
@@ -36,11 +37,11 @@ object LogFormatter {
       is PolicyDecision.Skip -> control.tunnelName
     }
     val tunnel = target.ifBlank { "(blank)" }
-    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network)} tunnel=$tunnel ssidSource=${network.ssidSource}"
+    return "trigger=$trigger apply=$apply net=${network.kind} ssid=${ssidLabel(network, hmacKey)} tunnel=$tunnel ssidSource=${network.ssidSource}"
   }
 
-  fun networkChangeDetail(network: NetworkSnapshot): String {
-    return "net=${network.kind} ssid=${ssidLabel(network)} ssidSource=${network.ssidSource}"
+  fun networkChangeDetail(network: NetworkSnapshot, hmacKey: ByteArray = ByteArray(0)): String {
+    return "net=${network.kind} ssid=${ssidLabel(network, hmacKey)} ssidSource=${network.ssidSource}"
   }
 
   fun preview(events: List<LogEvent>, limit: Int, zone: ZoneId = ZoneId.systemDefault()): String {
@@ -53,13 +54,13 @@ object LogFormatter {
     return if (body.isBlank()) header else "$header\n$body"
   }
 
-  private fun ssidLabel(network: NetworkSnapshot): String {
+  private fun ssidLabel(network: NetworkSnapshot, hmacKey: ByteArray): String {
     return when (network.kind) {
       NetworkKind.WIFI -> {
         if (network.wifiSsids.isEmpty()) {
           "?"
         } else {
-          network.wifiSsids.sorted().joinToString(",") { ssid -> SsidRedactor.redact(ssid) }
+          network.wifiSsids.sorted().joinToString(",") { ssid -> SsidRedactor.redact(ssid, hmacKey) }
         }
       }
       NetworkKind.WIFI_SETTLING -> "?"

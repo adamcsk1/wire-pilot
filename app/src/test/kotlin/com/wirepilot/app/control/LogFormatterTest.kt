@@ -45,7 +45,7 @@ class LogFormatterTest {
       decision = PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
     )
     assertEquals(
-      "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe")},${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
+      "trigger=debounce apply=down via=go-backend net=WIFI ssid=${SsidRedactor.redact("Cafe", ByteArray(0))},${SsidRedactor.redact("Home", ByteArray(0))} tunnel=office ssidSource=none",
       detail,
     )
   }
@@ -81,8 +81,24 @@ class LogFormatterTest {
   @Test
   fun networkChangeDetail() {
     assertEquals(
-      "net=WIFI ssid=${SsidRedactor.redact("Home")} ssidSource=none",
+      "net=WIFI ssid=${SsidRedactor.redact("Home", ByteArray(0))} ssidSource=none",
       LogFormatter.networkChangeDetail(NetworkSnapshot(NetworkKind.WIFI, setOf("Home"))),
+    )
+  }
+
+  @Test
+  fun applyDetailUsesPassedHmacKey() {
+    val key = ByteArray(32) { 1 }
+    val detail = LogFormatter.applyDetail(
+      trigger = "apply",
+      control = StoredControl(enabled = true, tunnelName = "office"),
+      network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
+      decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
+      hmacKey = key,
+    )
+    assertEquals(
+      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home", key)} tunnel=office ssidSource=none",
+      detail,
     )
   }
 
@@ -90,7 +106,7 @@ class LogFormatterTest {
   fun applyRedactsSsid() {
     val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"))
     assertEquals(
-      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
+      "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home", ByteArray(0))} tunnel=office ssidSource=none",
       LogFormatter.applyDetail(
         trigger = "apply",
         control = StoredControl(enabled = true, tunnelName = "office"),
@@ -99,7 +115,7 @@ class LogFormatterTest {
       ),
     )
     assertEquals(
-      "net=WIFI ssid=${SsidRedactor.redact("Home")} ssidSource=none",
+      "net=WIFI ssid=${SsidRedactor.redact("Home", ByteArray(0))} ssidSource=none",
       LogFormatter.networkChangeDetail(network),
     )
   }
