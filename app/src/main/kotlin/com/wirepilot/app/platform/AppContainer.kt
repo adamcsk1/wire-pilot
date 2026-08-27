@@ -1,7 +1,6 @@
 package com.wirepilot.app.platform
 
 import android.content.Context
-import android.os.SystemClock
 import com.wireguard.android.backend.GoBackend
 import com.wirepilot.app.control.AppLockSession
 import com.wirepilot.app.control.ApplyRunner
@@ -59,7 +58,7 @@ class AppContainer(
   }
   val tunnel = GoTunnelController(goBackend, catalog, splitTunnels, logger)
   val appLockStore = EncryptedAppLockStore(appContext)
-  val appLockSession = AppLockSession(appLockStore, clock = { SystemClock.elapsedRealtime() })
+  val appLockSession = AppLockSession(appLockStore, clock = { System.currentTimeMillis() })
 
   init {
     SsidEncryptionMigration.run(preferences, encryptedSsids)

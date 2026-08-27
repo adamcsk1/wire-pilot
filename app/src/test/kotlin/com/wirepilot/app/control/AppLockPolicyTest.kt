@@ -116,14 +116,23 @@ class AppLockPolicyTest {
   }
 
   @Test
-  fun lockoutSurvivesElapsedRealtimeReset() {
+  fun clockRewindDoesNotClearLockout() {
     val enabled = AppLockPolicy.enable("2468", "2468", salt)!!
     val state = enabled.copy(failedAttempts = 5, lockoutStartedMillis = 10_000_000L)
-    assertEquals(AppLockPolicy.LOCKOUT_INITIAL_MS - 1_000L, AppLockPolicy.remainingLockMillis(state, nowMillis = 1_000L))
+    assertEquals(AppLockPolicy.LOCKOUT_INITIAL_MS, AppLockPolicy.remainingLockMillis(state, nowMillis = 1_000L))
     assertTrue(AppLockPolicy.isLockedOut(state, nowMillis = 1_000L))
-    assertFalse(AppLockPolicy.isLockedOut(state, nowMillis = AppLockPolicy.LOCKOUT_INITIAL_MS))
-    val afterBootWindow = AppLockPolicy.checkPin(state, "2468", nowMillis = AppLockPolicy.LOCKOUT_INITIAL_MS)
-    assertTrue(afterBootWindow.accepted)
+  }
+
+  @Test
+  fun lockoutUsesWallClockElapsed() {
+    val enabled = AppLockPolicy.enable("2468", "2468", salt)!!
+    val started = 1_000_000L
+    val state = enabled.copy(failedAttempts = 5, lockoutStartedMillis = started)
+    assertEquals(
+      AppLockPolicy.LOCKOUT_INITIAL_MS - 5_000L,
+      AppLockPolicy.remainingLockMillis(state, nowMillis = started + 5_000L),
+    )
+    assertFalse(AppLockPolicy.isLockedOut(state, nowMillis = started + AppLockPolicy.LOCKOUT_INITIAL_MS))
   }
 
   @Test

@@ -61,7 +61,7 @@ object AppLockPolicy {
       return 0L
     }
     val elapsed = if (nowMillis < state.lockoutStartedMillis) {
-      nowMillis
+      0L
     } else {
       nowMillis - state.lockoutStartedMillis
     }
