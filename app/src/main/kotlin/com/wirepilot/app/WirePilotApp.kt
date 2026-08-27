@@ -24,7 +24,7 @@ class WirePilotApp : Application() {
       }
     })
     GoBackend.setAlwaysOnCallback {
-      container.applyRunner.applyNow("always-on")
+      container.debouncer.scheduleDebouncedApply()
     }
     container.debouncer.scheduleProcessStartApply()
   }
