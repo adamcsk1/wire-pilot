@@ -21,7 +21,7 @@ class ApplyRunner(
     }
     val snapshot = network()
     val forPolicy = resolved.copy(
-      excludedSsids = excludedSsidsFor(resolved.tunnelName) ?: resolved.excludedSsids,
+      excludedSsids = excludedSsidsFor(resolved.tunnelName) ?: emptySet(),
     )
     val decision = PolicyEvaluator.decide(forPolicy, snapshot)
     val kind = when (trigger) {

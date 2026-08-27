@@ -72,9 +72,7 @@ class AppContainer(
     network = { ssidReader.snapshot() },
     tunnel = tunnel,
     log = logger,
-    excludedSsidsFor = { name ->
-      if (excludedSsids.exists(name)) excludedSsids.read(name) else null
-    },
+    excludedSsidsFor = { name -> excludedSsids.read(name) },
   )
   val debouncer = ReceiverDebouncer(
     alarms = alarms,

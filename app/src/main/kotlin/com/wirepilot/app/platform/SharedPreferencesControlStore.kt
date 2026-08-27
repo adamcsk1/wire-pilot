@@ -27,7 +27,6 @@ class SharedPreferencesControlStore(
       putBoolean(PreferenceKeys.ENABLED, control.enabled)
       putLong(PreferenceKeys.PAUSED_UNTIL, control.pausedUntilEpochMillis ?: 0L)
       putString(PreferenceKeys.TUNNEL_NAME, control.tunnelName)
-      putString(PreferenceKeys.EXCLUDED_SSIDS, ControlCodec.encodeSsids(control.excludedSsids))
       putBoolean(PreferenceKeys.CONNECT_ON_MOBILE, control.mobileTunnelName.isNotBlank())
       putString(PreferenceKeys.MOBILE_TUNNEL_NAME, control.mobileTunnelName)
     }

@@ -44,7 +44,7 @@ class ApplyRunnerTest {
   @Test
   fun excludedSsidDownsCompanionMobile() {
     val store = InMemoryControlStore(
-      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home"), mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"),
     )
     val tunnel = RecordingTunnel()
     ApplyRunner(
@@ -52,6 +52,7 @@ class ApplyRunnerTest {
       clock = { 10L },
       network = { NetworkSnapshot(NetworkKind.WIFI, setOf("Home")) },
       tunnel = tunnel,
+      excludedSsidsFor = { setOf("Home") },
     ).applyNow()
     assertEquals(
       listOf("office" to TunnelCommand.DOWN, "travel" to TunnelCommand.DOWN),
@@ -89,7 +90,7 @@ class ApplyRunnerTest {
   @Test
   fun sendsDownOnExcludedSsid() {
     val store = InMemoryControlStore(
-      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home")),
+      StoredControl(enabled = true, tunnelName = "office"),
     )
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(
@@ -97,11 +98,28 @@ class ApplyRunnerTest {
       clock = { 10L },
       network = { NetworkSnapshot(NetworkKind.WIFI, setOf("Home")) },
       tunnel = tunnel,
+      excludedSsidsFor = { setOf("Home") },
     )
 
     runner.applyNow()
 
     assertEquals(listOf("office" to TunnelCommand.DOWN), tunnel.commands)
+  }
+
+  @Test
+  fun leftoverStoredExcludedSsidsAreIgnored() {
+    val store = InMemoryControlStore(
+      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home")),
+    )
+    val tunnel = RecordingTunnel()
+    ApplyRunner(
+      store = store,
+      clock = { 10L },
+      network = { NetworkSnapshot(NetworkKind.WIFI, setOf("Home")) },
+      tunnel = tunnel,
+    ).applyNow()
+
+    assertEquals(listOf("office" to TunnelCommand.UP), tunnel.commands)
   }
 
   @Test
