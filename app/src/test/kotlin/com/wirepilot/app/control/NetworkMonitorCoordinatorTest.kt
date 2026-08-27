@@ -13,7 +13,7 @@ class NetworkMonitorCoordinatorTest {
   fun enabledSelectedTunnelWatches() {
     assertEquals(
       NetworkMonitorMode.WATCHING,
-      NetworkMonitorPolicy.mode(StoredControl(tunnelName = "office"), now),
+      NetworkMonitorPolicy.mode(StoredControl(enabled = true, tunnelName = "office"), now),
     )
   }
 
@@ -51,7 +51,7 @@ class NetworkMonitorCoordinatorTest {
   fun blankTunnelStopsMonitor() {
     assertEquals(
       NetworkMonitorMode.STOPPED,
-      NetworkMonitorPolicy.mode(StoredControl(tunnelName = ""), now),
+      NetworkMonitorPolicy.mode(StoredControl(enabled = true, tunnelName = ""), now),
     )
   }
 
@@ -98,7 +98,7 @@ class NetworkMonitorCoordinatorTest {
 
   @Test
   fun currentModeLeavesResolvedStateUnchanged() {
-    val initial = StoredControl(tunnelName = "office")
+    val initial = StoredControl(enabled = true, tunnelName = "office")
     val store = CountingControlStore(initial)
     val coordinator = NetworkMonitorCoordinator(store, { now }) { _, _ -> }
 
@@ -109,7 +109,7 @@ class NetworkMonitorCoordinatorTest {
 
   @Test
   fun reconcileWithoutServiceStartAppliesModeAsFallbackOnly() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val applied = mutableListOf<Pair<NetworkMonitorMode, Boolean>>()
     val coordinator = NetworkMonitorCoordinator(store, { now }) { mode, allowServiceStart ->
       applied += mode to allowServiceStart

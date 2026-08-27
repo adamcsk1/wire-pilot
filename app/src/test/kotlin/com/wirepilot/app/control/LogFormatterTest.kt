@@ -40,7 +40,7 @@ class LogFormatterTest {
   fun applyDetailDescribesSkipAndWifi() {
     val detail = LogFormatter.applyDetail(
       trigger = "debounce",
-      control = StoredControl(tunnelName = "office"),
+      control = StoredControl(enabled = true, tunnelName = "office"),
       network = NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe", "Home")),
       decision = PolicyDecision.Apply(TunnelCommand.DOWN, "office"),
     )
@@ -68,7 +68,7 @@ class LogFormatterTest {
   fun applyDetailMobile() {
     val detail = LogFormatter.applyDetail(
       trigger = "apply-now",
-      control = StoredControl(tunnelName = "office"),
+      control = StoredControl(enabled = true, tunnelName = "office"),
       network = NetworkSnapshot(NetworkKind.MOBILE),
       decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
     )
@@ -93,7 +93,7 @@ class LogFormatterTest {
       "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
       LogFormatter.applyDetail(
         trigger = "apply",
-        control = StoredControl(tunnelName = "office"),
+        control = StoredControl(enabled = true, tunnelName = "office"),
         network = network,
         decision = PolicyDecision.Apply(TunnelCommand.UP, "office"),
       ),

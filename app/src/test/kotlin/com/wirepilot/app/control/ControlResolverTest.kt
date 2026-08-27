@@ -20,7 +20,7 @@ class ControlResolverTest {
 
   @Test
   fun persistResolvedLeavesUnchangedStore() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     var writes = 0
     val counting = object : com.wirepilot.app.data.ControlStore {
       override fun read() = store.read()

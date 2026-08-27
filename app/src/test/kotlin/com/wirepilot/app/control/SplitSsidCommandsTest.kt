@@ -16,7 +16,7 @@ class SplitSsidCommandsTest {
   private val now = 10_000L
 
   private fun commands(
-    initial: StoredControl = StoredControl(tunnelName = "office"),
+    initial: StoredControl = StoredControl(enabled = true, tunnelName = "office"),
   ): Triple<SplitSsidCommands, InMemorySplitTunnelStore, InMemoryExcludedSsidStore> {
     val store = InMemoryControlStore(initial)
     val splits = InMemorySplitTunnelStore()
@@ -86,7 +86,7 @@ class SplitSsidCommandsTest {
 
   @Test
   fun setConnectOnMobileIgnoresBlankAndUnknown() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     val splitSsids = SplitSsidCommands(
       store = store,

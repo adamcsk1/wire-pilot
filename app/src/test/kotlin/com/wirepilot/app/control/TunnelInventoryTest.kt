@@ -15,7 +15,7 @@ class TunnelInventoryTest {
   private val now = 10_000L
 
   private fun inventory(
-    initial: StoredControl = StoredControl(tunnelName = "office"),
+    initial: StoredControl = StoredControl(enabled = true, tunnelName = "office"),
     catalog: InMemoryTunnelCatalog = InMemoryTunnelCatalog(mapOf("office" to "[Interface]")),
     tunnelState: TunnelStatePort = NoOpTunnelState,
   ): Triple<TunnelInventory, InMemoryControlStore, RecordingTunnel> {

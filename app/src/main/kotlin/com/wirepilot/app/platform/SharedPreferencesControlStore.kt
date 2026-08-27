@@ -14,7 +14,7 @@ class SharedPreferencesControlStore(
     val tunnelName = preferences.getString(PreferenceKeys.TUNNEL_NAME, "").orEmpty()
     val mobileTunnelName = readMobileTunnelName(preferences, tunnelName)
     return StoredControl(
-      enabled = preferences.getBoolean(PreferenceKeys.ENABLED, true),
+      enabled = preferences.getBoolean(PreferenceKeys.ENABLED, false),
       pausedUntilEpochMillis = pausedUntil.takeIf { it > 0L },
       tunnelName = tunnelName,
       excludedSsids = ControlCodec.decodeSsids(preferences.getString(PreferenceKeys.EXCLUDED_SSIDS, "")),

@@ -24,7 +24,7 @@ class HomeControllerTest {
   private val now = 10_000L
 
   private fun controller(
-    initial: StoredControl = StoredControl(tunnelName = "office"),
+    initial: StoredControl = StoredControl(enabled = true, tunnelName = "office"),
     network: NetworkSnapshot = NetworkSnapshot(NetworkKind.MOBILE),
     log: DiagnosticLog = NoOpDiagnosticLog,
     tunnelState: TunnelStatePort = NoOpTunnelState,
@@ -61,7 +61,7 @@ class HomeControllerTest {
 
   @Test
   fun viewStateSortsSsidsAndShowsWatching() {
-    val (home) = controller(StoredControl(tunnelName = "office", excludedSsids = setOf("Zed", "Able")))
+    val (home) = controller(StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Zed", "Able")))
     val state = home.viewState()
     assertEquals("office", state.tunnelName)
     assertEquals(listOf("Able", "Zed"), state.excludedSsids)
@@ -80,7 +80,7 @@ class HomeControllerTest {
   @Test
   fun viewStateShowsDisconnectOnExcludedSsid() {
     val (home) = controller(
-      StoredControl(tunnelName = "office", excludedSsids = setOf("Home")),
+      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home")),
       network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home")),
     )
     val state = home.viewState()
@@ -93,7 +93,7 @@ class HomeControllerTest {
   @Test
   fun viewStateShowsWifiUpPolicyLine() {
     val (home) = controller(
-      StoredControl(tunnelName = "office"),
+      StoredControl(enabled = true, tunnelName = "office"),
       network = NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe")),
     )
     assertEquals(PolicyLine(PolicyLineKind.WIFI_UP, "office", "Cafe"), home.viewState().policyLine)
@@ -102,7 +102,7 @@ class HomeControllerTest {
   @Test
   fun viewStateShowsMobileUpPolicyLine() {
     val (home) = controller(
-      StoredControl(tunnelName = "office", mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"),
       network = NetworkSnapshot(NetworkKind.MOBILE),
     )
     assertEquals(PolicyLine(PolicyLineKind.MOBILE_UP, "travel"), home.viewState().policyLine)
@@ -177,7 +177,7 @@ class HomeControllerTest {
 
   @Test
   fun viewStateDisablesApplyNowWhenWatchingWithoutTunnel() {
-    val (home) = controller(StoredControl(tunnelName = ""))
+    val (home) = controller(StoredControl(enabled = true, tunnelName = ""))
     val state = home.viewState()
     assertEquals(PolicyLine(PolicyLineKind.NO_TUNNEL), state.policyLine)
     assertEquals(ApplyNowAction.UNAVAILABLE, state.applyNow.action)
@@ -217,7 +217,7 @@ class HomeControllerTest {
   fun rejectsInvalidTunnelName() {
     var monitorReconciles = 0
     val (home, store) = controller(
-      StoredControl(tunnelName = "office"),
+      StoredControl(enabled = true, tunnelName = "office"),
       reconcileNetworkMonitor = { monitorReconciles += 1 },
     )
     home.setTunnelName("bad/name")
@@ -227,7 +227,7 @@ class HomeControllerTest {
 
   @Test
   fun selectImportedTunnelApplies() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "[Interface]\n"))
     val log = RecordingLog()
     var monitorReconciles = 0
@@ -273,7 +273,7 @@ class HomeControllerTest {
 
   @Test
   fun setSplitTunnelPersistsAndApplies() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val splits = InMemorySplitTunnelStore()
     val log = RecordingLog()
     val home = HomeController(
@@ -294,7 +294,7 @@ class HomeControllerTest {
 
   @Test
   fun setSplitTunnelIgnoredWhenNoTunnel() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val splits = InMemorySplitTunnelStore()
     val home = HomeController(
       store = store,
@@ -311,7 +311,7 @@ class HomeControllerTest {
 
   @Test
   fun addExcludedSsidReturnsFalseWhenUnchanged() {
-    val (home) = controller(StoredControl(tunnelName = "office", excludedSsids = setOf("Home")))
+    val (home) = controller(StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home")))
     assertFalse(home.addExcludedSsid("  "))
     assertFalse(home.addExcludedSsid("Home"))
   }
@@ -327,7 +327,7 @@ class HomeControllerTest {
 
   @Test
   fun addExcludedSsidOnOtherTunnelDoesNotApply() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val ssids = InMemoryExcludedSsidStore()
     val log = RecordingLog()
     val home = HomeController(
@@ -349,7 +349,7 @@ class HomeControllerTest {
 
   @Test
   fun removeExcludedSsidOnOtherTunnelDoesNotApply() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val ssids = InMemoryExcludedSsidStore()
     ssids.write("HomeVPN", setOf("Cafe"))
     ssids.write("office", setOf("Home"))
@@ -375,7 +375,7 @@ class HomeControllerTest {
   @Test
   fun saveTunnelRunsSsidMigration() {
     var migrated = 0
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val catalog = InMemoryTunnelCatalog()
     val home = HomeController(
       store = store,
@@ -394,7 +394,7 @@ class HomeControllerTest {
   @Test
   fun reloadImportedRunsSsidMigration() {
     var migrated = 0
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     val monitorModes = mutableListOf<NetworkMonitorMode>()
     val home = HomeController(
@@ -444,7 +444,7 @@ class HomeControllerTest {
   @Test
   fun disableForeverCancelsAlarmAndAppliesDown() {
     val log = RecordingLog()
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val alarms = RecordingPauseAlarm()
     val tunnel = RecordingTunnel()
     val monitorModes = mutableListOf<NetworkMonitorMode>()
@@ -471,7 +471,7 @@ class HomeControllerTest {
   @Test
   fun timedPauseSchedulesAlarmAndAppliesDown() {
     val log = RecordingLog()
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val alarms = RecordingPauseAlarm()
     val tunnel = RecordingTunnel()
     val monitorModes = mutableListOf<NetworkMonitorMode>()
@@ -521,7 +521,7 @@ class HomeControllerTest {
 
   @Test
   fun loggingCanBeDisabledAndCleared() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val diagnostics = InMemoryDiagnosticStore(DiagnosticState(policyEnabled = true, vpnEnabled = true))
     val logger = DiagnosticLogger(diagnostics) { now }
     val home = HomeController(
@@ -614,7 +614,7 @@ class HomeControllerTest {
 
   @Test
   fun setConnectOnMobilePersistsAndApplies() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x", "travel" to "y"))
     val home = HomeController(
       store = store,
@@ -636,7 +636,7 @@ class HomeControllerTest {
   @Test
   fun deleteMobileTunnelClearsMobileName() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"),
     )
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x", "travel" to "y"))
     val home = HomeController(
@@ -662,7 +662,7 @@ class HomeControllerTest {
   @Test
   fun vpnConnectedFollowsTunnelState() {
     val (home) = controller(
-      StoredControl(tunnelName = "office"),
+      StoredControl(enabled = true, tunnelName = "office"),
       tunnelState = TunnelStatePort { name -> name == "office" },
     )
     val state = home.viewState()
@@ -673,7 +673,7 @@ class HomeControllerTest {
   @Test
   fun vpnConnectedFalseWhenTunnelBlank() {
     val (home) = controller(
-      StoredControl(tunnelName = ""),
+      StoredControl(enabled = true, tunnelName = ""),
       tunnelState = TunnelStatePort { true },
     )
     val state = home.viewState()
@@ -683,7 +683,7 @@ class HomeControllerTest {
 
   @Test
   fun vpnConnectedFalseWhenTunnelDown() {
-    val (home) = controller(StoredControl(tunnelName = "office"))
+    val (home) = controller(StoredControl(enabled = true, tunnelName = "office"))
     val state = home.viewState()
     assertFalse(state.vpnConnected)
     assertEquals("", state.connectedTunnelName)
@@ -691,7 +691,7 @@ class HomeControllerTest {
 
   @Test
   fun tunnelRowsMarkSelectedAndUp() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
     val home = HomeController(
       store = store,
@@ -714,7 +714,7 @@ class HomeControllerTest {
 
   @Test
   fun tunnelRowsIncludeSplitAndSsidCounts() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "b"))
     val splits = InMemorySplitTunnelStore()
     splits.write("office", StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo", "com.bar")))
@@ -748,7 +748,7 @@ class HomeControllerTest {
 
   @Test
   fun saveFirstTunnelSelectsIt() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val catalog = InMemoryTunnelCatalog()
     val log = RecordingLog()
     val monitorStates = mutableListOf<StoredControl>()
@@ -773,7 +773,7 @@ class HomeControllerTest {
 
   @Test
   fun saveTunnelWriteFailure() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val catalog = object : TunnelCatalog {
       override fun names(): List<String> = emptyList()
       override fun readConf(name: String): String? = null
@@ -797,7 +797,7 @@ class HomeControllerTest {
 
   @Test
   fun saveRejectsInvalidNameAndBlankConf() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     var monitorReconciles = 0
     val home = HomeController(
@@ -819,7 +819,7 @@ class HomeControllerTest {
 
   @Test
   fun saveRejectsNameInUseOnCreateAndRename() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
     val home = HomeController(
       store = store,
@@ -837,7 +837,7 @@ class HomeControllerTest {
 
   @Test
   fun saveAdditionalTunnelLeavesDefault() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     val log = RecordingLog()
     val home = HomeController(
@@ -858,7 +858,7 @@ class HomeControllerTest {
 
   @Test
   fun saveSelectedWhileEnabledApplies() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
     val log = RecordingLog()
     val home = HomeController(
@@ -920,7 +920,7 @@ class HomeControllerTest {
 
   @Test
   fun renameMovesSplitAndRetargetsDefault() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
     val splits = InMemorySplitTunnelStore()
     splits.write("office", StoredSplitTunnel(SplitTunnelMode.EXCLUDE_APPS, setOf("com.foo")))
@@ -953,7 +953,7 @@ class HomeControllerTest {
 
   @Test
   fun renameDownsPreviousWhenPolicySkips() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
     val tunnel = RecordingTunnel()
     tunnel.send("office", TunnelCommand.UP)
@@ -981,7 +981,7 @@ class HomeControllerTest {
 
   @Test
   fun saveSelectedWhileSkipReupsLiveTunnel() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "old"))
     val tunnel = RecordingTunnel()
     tunnel.send("office", TunnelCommand.UP)
@@ -1051,7 +1051,7 @@ class HomeControllerTest {
 
   @Test
   fun reloadImportedSelectsFirstWhenBlank() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a"))
     val log = RecordingLog()
     val tunnel = RecordingTunnel()
@@ -1101,7 +1101,7 @@ class HomeControllerTest {
 
   @Test
   fun saveFirstTunnelOnMobileUps() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = ""))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = ""))
     val catalog = InMemoryTunnelCatalog()
     val tunnel = RecordingTunnel()
     val home = HomeController(
@@ -1151,7 +1151,7 @@ class HomeControllerTest {
 
   @Test
   fun reloadImportedAppliesWhenEnabled() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     val log = RecordingLog()
     val home = HomeController(
@@ -1172,7 +1172,7 @@ class HomeControllerTest {
 
   @Test
   fun reloadImportedReupsWhenSkipAndConnected() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x"))
     val tunnel = RecordingTunnel()
     tunnel.send("office", TunnelCommand.UP)
@@ -1280,7 +1280,7 @@ class HomeControllerTest {
 
   @Test
   fun deleteSelectedPicksNext() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
     val log = RecordingLog()
     val home = HomeController(
@@ -1301,7 +1301,7 @@ class HomeControllerTest {
 
   @Test
   fun deleteOtherLeavesDefault() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val catalog = InMemoryTunnelCatalog(mapOf("HomeVPN" to "a", "office" to "b"))
     var monitorReconciles = 0
     val home = HomeController(
@@ -1323,7 +1323,7 @@ class HomeControllerTest {
 
   @Test
   fun splitSettingsReadsNamedTunnel() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val splits = InMemorySplitTunnelStore()
     splits.write("HomeVPN", StoredSplitTunnel(SplitTunnelMode.INCLUDE_APPS, setOf("com.bar")))
     val home = HomeController(
@@ -1343,7 +1343,7 @@ class HomeControllerTest {
 
   @Test
   fun setSplitTunnelOnOtherNameDoesNotApply() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val splits = InMemorySplitTunnelStore()
     val log = RecordingLog()
     val home = HomeController(
@@ -1364,7 +1364,7 @@ class HomeControllerTest {
   @Test
   fun setSplitTunnelOnMobileTunnelApplies() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"),
     )
     val catalog = InMemoryTunnelCatalog(mapOf("office" to "x", "travel" to "y"))
     val splits = InMemorySplitTunnelStore()
@@ -1391,7 +1391,7 @@ class HomeControllerTest {
 
   @Test
   fun usageSnapshotStaysOffUntilEnabled() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office"))
     val home = HomeController(
       store = store,
       clock = { now },
@@ -1413,7 +1413,7 @@ class HomeControllerTest {
 
   @Test
   fun usageSnapshotWhenDownOrMissingStats() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "travel"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"))
     val down = HomeController(
       store = store,
       clock = { now },

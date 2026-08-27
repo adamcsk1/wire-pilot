@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class ApplyRunnerTest {
   @Test
   fun sendsUpWhenPolicyMatches() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "office"))
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(
       store = store,
@@ -29,7 +29,7 @@ class ApplyRunnerTest {
   @Test
   fun sendsUpToMobileTunnelWhenDifferent() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "travel"),
     )
     val tunnel = RecordingTunnel()
     ApplyRunner(
@@ -44,7 +44,7 @@ class ApplyRunnerTest {
   @Test
   fun excludedSsidDownsCompanionMobile() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", excludedSsids = setOf("Home"), mobileTunnelName = "travel"),
+      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home"), mobileTunnelName = "travel"),
     )
     val tunnel = RecordingTunnel()
     ApplyRunner(
@@ -89,7 +89,7 @@ class ApplyRunnerTest {
   @Test
   fun sendsDownOnExcludedSsid() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", excludedSsids = setOf("Home")),
+      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Home")),
     )
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(
@@ -107,7 +107,7 @@ class ApplyRunnerTest {
   @Test
   fun overlayExcludedSsidsWinOverStored() {
     val store = InMemoryControlStore(
-      StoredControl(tunnelName = "office", excludedSsids = setOf("Cafe")),
+      StoredControl(enabled = true, tunnelName = "office", excludedSsids = setOf("Cafe")),
     )
     val tunnel = RecordingTunnel()
     val runner = ApplyRunner(
@@ -195,7 +195,7 @@ class ApplyRunnerTest {
 
   @Test
   fun doesNotRewriteUnchangedStore() {
-    val store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "office"))
+    val store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "office"))
     var writes = 0
     val countingStore = object : com.wirepilot.app.data.ControlStore {
       override fun read() = store.read()
@@ -217,7 +217,7 @@ class ApplyRunnerTest {
   fun logsDebounceKindForDebounceTrigger() {
     val log = RecordingLog()
     ApplyRunner(
-      store = InMemoryControlStore(StoredControl(tunnelName = "office", mobileTunnelName = "office")),
+      store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office", mobileTunnelName = "office")),
       clock = { 10L },
       network = { NetworkSnapshot(NetworkKind.MOBILE) },
       tunnel = RecordingTunnel(),
@@ -230,7 +230,7 @@ class ApplyRunnerTest {
   fun skipsUnreadableWifiWithoutRetry() {
     val tunnel = RecordingTunnel()
     ApplyRunner(
-      store = InMemoryControlStore(StoredControl(tunnelName = "office")),
+      store = InMemoryControlStore(StoredControl(enabled = true, tunnelName = "office")),
       clock = { 10L },
       network = { NetworkSnapshot(NetworkKind.WIFI) },
       tunnel = tunnel,
