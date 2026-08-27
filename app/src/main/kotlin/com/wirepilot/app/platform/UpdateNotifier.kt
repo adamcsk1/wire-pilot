@@ -9,11 +9,15 @@ import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import com.wirepilot.app.R
 import com.wirepilot.app.control.UpdateNotifyGate
+import com.wirepilot.app.data.GitHubReleaseCodec
 
 class UpdateNotifier(
   private val context: Context,
 ) {
   fun show(tagName: String, htmlUrl: String): Boolean {
+    if (!GitHubReleaseCodec.isTrustedReleaseUrl(htmlUrl)) {
+      return false
+    }
     val manager = context.getSystemService(NotificationManager::class.java)
     ensureChannel(manager)
     val channel = manager.getNotificationChannel(CHANNEL_ID)
@@ -34,8 +38,12 @@ class UpdateNotifier(
       .setContentIntent(contentIntent)
       .setAutoCancel(true)
       .build()
-    manager.notify(NOTIFICATION_ID, notification)
-    return true
+    return try {
+      manager.notify(NOTIFICATION_ID, notification)
+      true
+    } catch (_: SecurityException) {
+      false
+    }
   }
 
   private fun ensureChannel(manager: NotificationManager) {

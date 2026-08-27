@@ -1,5 +1,6 @@
 package com.wirepilot.app
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -7,6 +8,7 @@ import android.os.Bundle
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PackageManagerCompat
@@ -52,6 +54,11 @@ class SettingsActivity : AppCompatActivity() {
   private var suppressBiometricSwitch = false
   private var suppressThemeSelection = false
   private var suppressUpdateNotifySwitch = false
+  private val notifyPermissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestPermission(),
+  ) { granted ->
+    onNotifyPermissionResult(granted)
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -97,7 +104,7 @@ class SettingsActivity : AppCompatActivity() {
       if (suppressUpdateNotifySwitch) {
         return@setOnCheckedChangeListener
       }
-      updateCheckRunner.setNotifyEnabled(checked)
+      setNotifyEnabledFromSwitch(checked)
     }
     findViewById<TextView>(R.id.appVersion).text = getString(R.string.settings_version, appVersionName())
     appLockSwitch.setOnCheckedChangeListener { _, checked ->
@@ -237,6 +244,27 @@ class SettingsActivity : AppCompatActivity() {
   private fun openSystemSettings(target: SystemSettingsTarget) {
     if (!settingsNavigator.open(target)) {
       Toast.makeText(this, R.string.settings_unavailable, Toast.LENGTH_SHORT).show()
+    }
+  }
+
+  private fun setNotifyEnabledFromSwitch(enabled: Boolean) {
+    if (!enabled) {
+      updateCheckRunner.setNotifyEnabled(false)
+      return
+    }
+    if (AppPermissions.granted(this, Manifest.permission.POST_NOTIFICATIONS)) {
+      updateCheckRunner.setNotifyEnabled(true)
+      return
+    }
+    notifyPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+  }
+
+  private fun onNotifyPermissionResult(granted: Boolean) {
+    if (granted) {
+      updateCheckRunner.setNotifyEnabled(true)
+    }
+    if (!isDestroyed) {
+      refreshUi()
     }
   }
 

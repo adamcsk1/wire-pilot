@@ -8,7 +8,7 @@ data class GitHubRelease(
 object GitHubReleaseCodec {
   fun parse(body: String): GitHubRelease? {
     val tagName = readFirstString(body, "tag_name")?.trim().orEmpty()
-    if (tagName.isEmpty()) {
+    if (tagName.isEmpty() || tagName.any { character -> character.isISOControl() || character.isWhitespace() }) {
       return null
     }
     val htmlUrl = readPreferredHtmlUrl(body) ?: return null
