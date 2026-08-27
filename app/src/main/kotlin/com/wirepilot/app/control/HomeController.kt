@@ -214,12 +214,15 @@ class HomeController(
     if (current.enabled) {
       return
     }
-    if (current.tunnelName.isNotBlank()) {
-      applyRunner.force(TunnelCommand.DOWN, "manual-down", current.tunnelName)
+    val commands = buildList {
+      if (current.tunnelName.isNotBlank()) {
+        add(current.tunnelName to TunnelCommand.DOWN)
+      }
+      if (current.mobileTunnelName.isNotBlank() && current.mobileTunnelName != current.tunnelName) {
+        add(current.mobileTunnelName to TunnelCommand.DOWN)
+      }
     }
-    if (current.mobileTunnelName.isNotBlank() && current.mobileTunnelName != current.tunnelName) {
-      applyRunner.force(TunnelCommand.DOWN, "manual-down", current.mobileTunnelName)
-    }
+    applyRunner.force(commands, "manual-down")
   }
 
   fun setLoggingEnabled(enabled: Boolean) {

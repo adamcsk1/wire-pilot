@@ -47,11 +47,18 @@ class ApplyRunner(
   }
 
   fun force(command: TunnelCommand, trigger: String, tunnelName: String = store.read().tunnelName) {
-    if (tunnelName.isBlank()) {
+    force(listOf(tunnelName to command), trigger)
+  }
+
+  fun force(commands: List<Pair<String, TunnelCommand>>, trigger: String) {
+    val valid = commands.filter { (tunnelName, _) -> tunnelName.isNotBlank() }
+    if (valid.isEmpty()) {
       return
     }
-    log.record(LogKind.TUNNEL, "trigger=$trigger command=${command.name.lowercase()} tunnel=$tunnelName")
-    tunnel.send(tunnelName, command)
+    valid.forEach { (tunnelName, command) ->
+      log.record(LogKind.TUNNEL, "trigger=$trigger command=${command.name.lowercase()} tunnel=$tunnelName")
+    }
+    tunnel.send(valid)
   }
 
   private fun commandsFor(decision: PolicyDecision.Apply, control: StoredControl): List<Pair<String, TunnelCommand>> {

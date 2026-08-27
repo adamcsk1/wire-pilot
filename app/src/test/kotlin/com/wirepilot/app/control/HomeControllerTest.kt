@@ -595,6 +595,36 @@ class HomeControllerTest {
   }
 
   @Test
+  fun disconnectManuallySendsCompanionDownAsOneBatch() {
+    val store = InMemoryControlStore(
+      StoredControl(enabled = false, tunnelName = "office", mobileTunnelName = "travel"),
+    )
+    val batches = mutableListOf<List<Pair<String, TunnelCommand>>>()
+    val tunnel = object : TunnelCommands {
+      override fun send(tunnelName: String, command: TunnelCommand) {
+        error("expected batch send")
+      }
+
+      override fun send(commands: List<Pair<String, TunnelCommand>>) {
+        batches += commands
+      }
+    }
+    val home = HomeController(
+      store = store,
+      clock = { now },
+      applyRunner = ApplyRunner(store, { now }, { NetworkSnapshot(NetworkKind.MOBILE) }, tunnel),
+      pauseAlarms = RecordingPauseAlarm(),
+      network = { NetworkSnapshot(NetworkKind.MOBILE) },
+      diagnostics = InMemoryDiagnosticStore(),
+    )
+    home.disconnectManually()
+    assertEquals(
+      listOf(listOf("office" to TunnelCommand.DOWN, "travel" to TunnelCommand.DOWN)),
+      batches,
+    )
+  }
+
+  @Test
   fun connectManuallyOnMobileUsesMobileTunnel() {
     val store = InMemoryControlStore(
       StoredControl(enabled = false, tunnelName = "office", mobileTunnelName = "travel"),
