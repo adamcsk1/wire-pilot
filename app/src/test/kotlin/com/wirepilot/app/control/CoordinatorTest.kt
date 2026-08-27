@@ -15,8 +15,9 @@ class CoordinatorTest {
       reconcileNetworkMonitor = { events += "reconcile" },
       reschedulePause = { events += "reschedule" },
       scheduleDebouncedApply = { events += "schedule" },
+      rescheduleUpdateCheck = { events += "update-check" },
     ).onBootOrUpdate()
-    assertEquals(listOf("reconcile", "reschedule", "schedule"), events)
+    assertEquals(listOf("reconcile", "reschedule", "schedule", "update-check"), events)
   }
 
   @Test

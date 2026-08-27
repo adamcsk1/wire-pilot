@@ -25,7 +25,7 @@ Issue description and why it matters. Suggested fix.
 - Policy, debounce, boot, and pause behavior. Off/Pause with a selected tunnel is `DOWN` (also downs the mobile tunnel if different). Cellular uses the one designated mobile tunnel, or `DOWN` if none. Last-known SSID only applies within 60s.
 - Official tunnel library usage (`GoBackend.setState`), ZIP/`.conf` import-export, EncryptedFile key storage, and split-tunnel exclude XOR include.
 - SSID reading across all Wi-Fi networks, not only the active network.
-- Battery and process lifetime: monitoring foreground service is `specialUse|location` and runs only while control is enabled or timed-paused so SSID stays readable; no polling or battery-optimization prompt.
+- Battery and process lifetime: monitoring foreground service is `specialUse|location` and runs only while control is enabled or timed-paused so SSID stays readable; no SSID/network polling or battery-optimization prompt. A once-daily GitHub Releases GET via AlarmManager is allowed.
 - Android JVM tests and JaCoCo gate for `control` and `data`.
 - Gradle, manifest, and permission changes.
 

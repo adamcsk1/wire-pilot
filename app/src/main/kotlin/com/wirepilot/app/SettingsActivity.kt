@@ -17,14 +17,17 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.wirepilot.app.control.AppLockSession
+import com.wirepilot.app.control.UpdateCheckDecision
 import com.wirepilot.app.data.ThemeMode
 import com.wirepilot.app.control.SettingsRowStatus
 import com.wirepilot.app.control.SettingsRowStatusPresenter
 import com.wirepilot.app.control.SystemSettingsTarget
 import com.wirepilot.app.data.ThemeModeStore
+import com.wirepilot.app.data.UpdateCheckStore
 import com.wirepilot.app.platform.AppCompatThemeMode
 import com.wirepilot.app.platform.BiometricAvailability
 import com.wirepilot.app.platform.SettingsNavigator
+import com.wirepilot.app.platform.UpdateCheckRunner
 import com.wirepilot.app.ui.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
@@ -32,9 +35,13 @@ class SettingsActivity : AppCompatActivity() {
   private lateinit var appLockSession: AppLockSession
   private lateinit var settingsNavigator: SettingsNavigator
   private lateinit var themeModes: ThemeModeStore
+  private lateinit var updateChecks: UpdateCheckStore
+  private lateinit var updateCheckRunner: UpdateCheckRunner
   private lateinit var themeModeGroup: RadioGroup
   private lateinit var appLockSwitch: MaterialSwitch
   private lateinit var biometricSwitch: MaterialSwitch
+  private lateinit var updateNotifySwitch: MaterialSwitch
+  private lateinit var checkUpdatesButton: MaterialButton
   private lateinit var locationPermissionStatus: TextView
   private lateinit var nearbyWifiStatus: TextView
   private lateinit var locationSettingsStatus: TextView
@@ -44,6 +51,7 @@ class SettingsActivity : AppCompatActivity() {
   private var suppressLockSwitch = false
   private var suppressBiometricSwitch = false
   private var suppressThemeSelection = false
+  private var suppressUpdateNotifySwitch = false
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -52,10 +60,14 @@ class SettingsActivity : AppCompatActivity() {
     val container = (application as WirePilotApp).container
     appLockSession = container.appLockSession
     themeModes = container.themeModes
+    updateChecks = container.updateChecks
+    updateCheckRunner = container.updateCheckRunner
     settingsNavigator = SettingsNavigator(this)
     themeModeGroup = findViewById(R.id.themeModeGroup)
     appLockSwitch = findViewById(R.id.appLockSwitch)
     biometricSwitch = findViewById(R.id.biometricSwitch)
+    updateNotifySwitch = findViewById(R.id.updateNotifySwitch)
+    checkUpdatesButton = findViewById(R.id.checkUpdatesButton)
     locationPermissionStatus = findViewById(R.id.locationPermissionStatus)
     nearbyWifiStatus = findViewById(R.id.nearbyWifiStatus)
     locationSettingsStatus = findViewById(R.id.locationSettingsStatus)
@@ -80,6 +92,13 @@ class SettingsActivity : AppCompatActivity() {
       openSystemSettings(SystemSettingsTarget.VPN)
     }
     findViewById<MaterialButton>(R.id.githubLink).setOnClickListener { openGitHub() }
+    checkUpdatesButton.setOnClickListener { checkForUpdates() }
+    updateNotifySwitch.setOnCheckedChangeListener { _, checked ->
+      if (suppressUpdateNotifySwitch) {
+        return@setOnCheckedChangeListener
+      }
+      updateCheckRunner.setNotifyEnabled(checked)
+    }
     findViewById<TextView>(R.id.appVersion).text = getString(R.string.settings_version, appVersionName())
     appLockSwitch.setOnCheckedChangeListener { _, checked ->
       if (suppressLockSwitch) {
@@ -128,6 +147,9 @@ class SettingsActivity : AppCompatActivity() {
     suppressThemeSelection = true
     themeModeGroup.check(themeButtonId(themeModes.read()))
     suppressThemeSelection = false
+    suppressUpdateNotifySwitch = true
+    updateNotifySwitch.isChecked = updateChecks.read().notifyEnabled
+    suppressUpdateNotifySwitch = false
     bindOnOff(locationPermissionStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.fineLocationGranted(this)))
     bindOnOff(nearbyWifiStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.nearbyWifiGranted(this)))
     bindOnOff(locationSettingsStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.locationEnabled(this)))
@@ -215,6 +237,33 @@ class SettingsActivity : AppCompatActivity() {
   private fun openSystemSettings(target: SystemSettingsTarget) {
     if (!settingsNavigator.open(target)) {
       Toast.makeText(this, R.string.settings_unavailable, Toast.LENGTH_SHORT).show()
+    }
+  }
+
+  private fun checkForUpdates() {
+    checkUpdatesButton.isEnabled = false
+    val mainExecutor = ContextCompat.getMainExecutor(this)
+    updateCheckRunner.checkNow { decision ->
+      mainExecutor.execute {
+        if (isDestroyed) {
+          return@execute
+        }
+        checkUpdatesButton.isEnabled = true
+        Toast.makeText(this, messageFor(decision), Toast.LENGTH_SHORT).show()
+      }
+    }
+  }
+
+  private fun messageFor(decision: UpdateCheckDecision): String {
+    return when (decision) {
+      UpdateCheckDecision.UpToDate -> getString(R.string.settings_update_up_to_date)
+      UpdateCheckDecision.NoRelease -> getString(R.string.settings_update_none)
+      UpdateCheckDecision.Failed -> getString(R.string.settings_update_failed)
+      UpdateCheckDecision.AlreadyNotified -> {
+        val tag = updateChecks.read().lastNotifiedTag
+        getString(R.string.settings_update_available, tag)
+      }
+      is UpdateCheckDecision.Available -> getString(R.string.settings_update_available, decision.tagName)
     }
   }
 

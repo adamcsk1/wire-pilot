@@ -8,6 +8,7 @@ import com.wirepilot.app.control.DebounceTriggers
 import com.wirepilot.app.control.PauseAlarmPort
 import com.wirepilot.app.receiver.ApplyDebounceReceiver
 import com.wirepilot.app.receiver.PauseExpiredReceiver
+import com.wirepilot.app.receiver.UpdateCheckReceiver
 
 class AlarmScheduler(
   private val context: Context,
@@ -32,6 +33,14 @@ class AlarmScheduler(
     alarmManager.cancel(debounceIntent(DebounceTriggers.DEBOUNCE))
   }
 
+  fun scheduleUpdateCheck(atEpochMillis: Long) {
+    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atEpochMillis, updateCheckIntent())
+  }
+
+  fun cancelUpdateCheck() {
+    alarmManager.cancel(updateCheckIntent())
+  }
+
   private fun pauseIntent(): PendingIntent {
     return PendingIntent.getBroadcast(
       context,
@@ -53,8 +62,18 @@ class AlarmScheduler(
     )
   }
 
+  private fun updateCheckIntent(): PendingIntent {
+    return PendingIntent.getBroadcast(
+      context,
+      REQUEST_UPDATE_CHECK,
+      Intent(context, UpdateCheckReceiver::class.java),
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+  }
+
   companion object {
     private const val REQUEST_PAUSE = 31
     private const val REQUEST_DEBOUNCE = 32
+    private const val REQUEST_UPDATE_CHECK = 33
   }
 }

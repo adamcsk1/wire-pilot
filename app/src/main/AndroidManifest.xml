@@ -120,6 +120,10 @@
       android:exported="false" />
 
     <receiver
+      android:name=".receiver.UpdateCheckReceiver"
+      android:exported="false" />
+
+    <receiver
       android:name=".receiver.BootReceiver"
       android:exported="true">
       <intent-filter>

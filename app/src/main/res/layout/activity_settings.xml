@@ -374,6 +374,22 @@
             android:textColor="@color/on_surface_muted"
             android:textSize="13sp" />
 
+          <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/updateNotifySwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_notify_updates"
+            android:textColor="@color/on_surface" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/checkUpdatesButton"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_check_updates" />
+
           <com.google.android.material.button.MaterialButton
             android:id="@+id/githubLink"
             style="@style/Widget.WirePilot.Button.Outlined"

@@ -15,4 +15,5 @@ object PreferenceKeys {
   const val EXCLUDED_SSID_PREFIX = "excluded_ssids_"
   const val EXCLUDED_SSIDS_MIGRATED = "ssid_lists_migrated"
   const val THEME_MODE = "theme_mode"
+  const val UPDATE_CHECK = "update_check"
 }

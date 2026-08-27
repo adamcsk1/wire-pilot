@@ -22,5 +22,6 @@ class AppLifetime(
     }
     container.networkMonitorCoordinator.reconcile()
     container.debouncer.scheduleProcessStartApply()
+    container.updateCheckRunner.reschedule()
   }
 }

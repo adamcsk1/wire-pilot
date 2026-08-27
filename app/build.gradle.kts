@@ -11,6 +11,11 @@ plugins {
 val versionCodeTimestamp: Int = ZonedDateTime.now(ZoneOffset.UTC)
   .format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
 
+val appVersionName: String = providers.gradleProperty("appVersionName")
+  .orElse(providers.environmentVariable("VERSION_NAME"))
+  .orElse("1.0.0")
+  .get()
+
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
@@ -33,7 +38,7 @@ android {
     minSdk = 35
     targetSdk = 37
     versionCode = versionCodeTimestamp
-    versionName = "1.0.0"
+    versionName = appVersionName
   }
 
   compileOptions {

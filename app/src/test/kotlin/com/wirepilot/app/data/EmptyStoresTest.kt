@@ -34,6 +34,13 @@ class EmptyStoresTest {
   }
 
   @Test
+  fun emptyUpdateCheckStoreIsNoOp() {
+    assertEquals(StoredUpdateCheck(), EmptyUpdateCheckStore.read())
+    EmptyUpdateCheckStore.write(StoredUpdateCheck(notifyEnabled = false, lastNotifiedTag = "1.0.1"))
+    assertEquals(StoredUpdateCheck(), EmptyUpdateCheckStore.read())
+  }
+
+  @Test
   fun emptyAppLockStoreIsNoOp() {
     assertEquals(AppLockState(), EmptyAppLockStore.read())
     EmptyAppLockStore.write(AppLockState(enabled = true, pinSalt = "aa", pinHash = "bb"))

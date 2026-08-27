@@ -1,10 +1,12 @@
 package com.wirepilot.app.platform
 
 import android.content.Context
+import android.content.pm.PackageManager
 import com.wireguard.android.backend.GoBackend
 import com.wirepilot.app.control.AppLockSession
 import com.wirepilot.app.control.ApplyRunner
 import com.wirepilot.app.control.BootCoordinator
+import com.wirepilot.app.control.UpdateCheckCoordinator
 import com.wirepilot.app.control.DiagnosticLog
 import com.wirepilot.app.control.DiagnosticLogger
 import com.wirepilot.app.control.HomeController
@@ -23,6 +25,7 @@ import com.wirepilot.app.data.ExcludedSsidStore
 import com.wirepilot.app.data.SplitTunnelStore
 import com.wirepilot.app.data.ThemeModeStore
 import com.wirepilot.app.data.TunnelCatalog
+import com.wirepilot.app.data.UpdateCheckStore
 import java.util.concurrent.CopyOnWriteArraySet
 
 class AppContainer(
@@ -37,6 +40,7 @@ class AppContainer(
   val catalog: TunnelCatalog = FileTunnelCatalog(appContext)
   val splitTunnels: SplitTunnelStore = SharedPreferencesSplitTunnelStore(preferences)
   val themeModes: ThemeModeStore = SharedPreferencesThemeModeStore(preferences)
+  val updateChecks: UpdateCheckStore = SharedPreferencesUpdateCheckStore(preferences)
   val excludedSsids: ExcludedSsidStore = SharedPreferencesExcludedSsidStore(encryptedSsids)
   val goBackend = GoBackend(appContext)
   val inventory = NetworkInventory()
@@ -49,6 +53,22 @@ class AppContainer(
     ),
   )
   val alarms = AlarmScheduler(appContext)
+  private val gitHubReleaseClient = GitHubReleaseClient()
+  val updateCheckCoordinator = UpdateCheckCoordinator(
+    store = updateChecks,
+    clock = { System.currentTimeMillis() },
+    installedVersionName = {
+      appContext.packageManager.getPackageInfo(
+        appContext.packageName,
+        PackageManager.PackageInfoFlags.of(0),
+      ).versionName.orEmpty()
+    },
+    fetchLatest = { gitHubReleaseClient.fetchLatest() },
+    scheduleAlarm = { atEpochMillis -> alarms.scheduleUpdateCheck(atEpochMillis) },
+    cancelAlarm = { alarms.cancelUpdateCheck() },
+    showNotification = { tagName, htmlUrl -> UpdateNotifier(appContext).show(tagName, htmlUrl) },
+  )
+  val updateCheckRunner = UpdateCheckRunner(updateCheckCoordinator, gitHubReleaseClient::cancel)
   private val diagnosticLogger = DiagnosticLogger(diagnostics) { System.currentTimeMillis() }
   val logger: DiagnosticLog = DiagnosticLog { kind, detail ->
     diagnosticLogger.record(kind, detail)
@@ -150,6 +170,7 @@ class AppContainer(
       }
     },
     scheduleDebouncedApply = { debouncer.scheduleDebouncedApply() },
+    rescheduleUpdateCheck = { updateCheckRunner.reschedule() },
   )
   val networkChangeCoordinator = NetworkChangeCoordinator(
     scheduleDebouncedApply = { debouncer.scheduleDebouncedApply() },

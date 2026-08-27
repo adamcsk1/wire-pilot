@@ -23,6 +23,7 @@ It does **not** talk to the official WireGuard app.
 - Optional always-on VPN (the OS may restart the VPN; WirePilot still decides up vs down)
 - Optional app lock (PIN and biometrics)
 - Optional local logs and live tunnel usage
+- Optional GitHub update check (Settings button, or once a day) that opens the release page
 
 ## How control works
 
@@ -38,7 +39,7 @@ When control is **on**:
 
 Network changes and boot wait 3 seconds, then apply once. Timed pause expiry applies immediately.
 
-While control is enabled or timed-paused, a foreground service keeps event-driven network monitoring alive so the SSID stays readable without opening the UI. WirePilot does not poll and does not prompt for battery optimization.
+While control is enabled or timed-paused, a foreground service keeps event-driven network monitoring alive so the SSID stays readable without opening the UI. WirePilot does not poll SSIDs or networks and does not prompt for battery optimization. A once-daily GitHub Releases check can notify when a newer tag exists.
 
 ## Build
 

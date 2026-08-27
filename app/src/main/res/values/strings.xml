@@ -209,8 +209,18 @@
   <string name="biometric_unlock">Unlock with biometrics</string>
   <string name="settings_title">Settings</string>
   <string name="settings_github_section">Source code</string>
-  <string name="settings_github_hint">View the WirePilot source and issues on GitHub.</string>
+  <string name="settings_github_hint">View the WirePilot source and issues on GitHub. Check for a newer tagged release, or get a notification once a day.</string>
   <string name="settings_github">Open GitHub repository</string>
+  <string name="settings_notify_updates">Notify about new versions</string>
+  <string name="settings_check_updates">Check for updates</string>
+  <string name="settings_update_up_to_date">You are on the latest version</string>
+  <string name="settings_update_none">No GitHub release yet</string>
+  <string name="settings_update_failed">Could not check for updates</string>
+  <string name="settings_update_available">Version %1$s is available</string>
+  <string name="update_notification_title">New WirePilot version</string>
+  <string name="update_notification_text">Version %1$s is on GitHub</string>
+  <string name="update_channel_name">App updates</string>
+  <string name="update_channel_description">Tells you when a newer GitHub release is available</string>
   <string name="github_project_url" translatable="false">https://github.com/adamcsk1/wire-pilot</string>
   <string name="settings_version">Version %1$s</string>
 </resources>

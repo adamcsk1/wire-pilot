@@ -23,7 +23,8 @@ Policy:
 - Network change and boot wait 3 seconds, then apply once
 - Timed pause expiry applies immediately
 - A special-use|location foreground service keeps event-driven network monitoring alive while control is enabled or timed-paused so SSID stays readable without opening the UI
-- No polling or battery-optimization prompt
+- No SSID/network polling or battery-optimization prompt
+- Optional GitHub update check: one Releases API GET per day via AlarmManager, plus a Settings button; notify by opening the release page. Tag `versionName` as `1.0.0`, `1.0.1`, `2.0.0`
 
 ## Layout
 
