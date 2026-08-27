@@ -35,6 +35,11 @@ class FileTunnelCatalog(
         siblingTemp(file).delete()
         return plaintext
       }
+      tryEncryptLeftover(file)
+      readEncrypted(file)?.let { plaintext ->
+        siblingTemp(file).delete()
+        return plaintext
+      }
       recoverLegacyTempAad(file)?.let { return it }
     }
     return recoverLegacyTempAad(file)
@@ -64,16 +69,22 @@ class FileTunnelCatalog(
       if (!file.isFile || ConfigZipNames.tunnelNameFromPath(file.name) == null) {
         return@forEach
       }
-      if (readEncrypted(file) != null) {
-        return@forEach
-      }
-      val plaintext = runCatching { file.readText() }.getOrNull()
-      val plaintextParses = plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null
-      if (!LeftoverPlaintextConf.shouldEncrypt(encryptedReadable = false, plaintextParses) || plaintext == null) {
-        return@forEach
-      }
-      runCatching { writeEncrypted(file, plaintext) }
+      tryEncryptLeftover(file)
     }
+  }
+
+  private fun tryEncryptLeftover(file: File) {
+    val encryptedReadable = readEncrypted(file) != null
+    val plaintext = if (encryptedReadable) {
+      null
+    } else {
+      runCatching { file.readText() }.getOrNull()
+    }
+    val plaintextParses = plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null
+    if (!LeftoverPlaintextConf.shouldEncrypt(encryptedReadable, plaintextParses) || plaintext == null) {
+      return
+    }
+    runCatching { writeEncrypted(file, plaintext) }
   }
 
   private fun readEncrypted(file: File): String? {
