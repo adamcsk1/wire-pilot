@@ -24,6 +24,10 @@ object NetworkMonitorPolicy {
       NetworkMonitorMode.STOPPED
     }
   }
+
+  fun shouldScheduleDebouncedApply(control: StoredControl, nowMillis: Long): Boolean {
+    return mode(control, nowMillis) != NetworkMonitorMode.STOPPED
+  }
 }
 
 class NetworkMonitorCoordinator(

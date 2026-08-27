@@ -40,6 +40,31 @@ class NetworkMonitorCoordinatorTest {
   }
 
   @Test
+  fun debounceApplyWhenWatchingOrPausedNotWhenStopped() {
+    assertEquals(
+      true,
+      NetworkMonitorPolicy.shouldScheduleDebouncedApply(
+        StoredControl(enabled = true, tunnelName = "office"),
+        now,
+      ),
+    )
+    assertEquals(
+      true,
+      NetworkMonitorPolicy.shouldScheduleDebouncedApply(
+        StoredControl(enabled = false, pausedUntilEpochMillis = now + 1L, tunnelName = "office"),
+        now,
+      ),
+    )
+    assertEquals(
+      false,
+      NetworkMonitorPolicy.shouldScheduleDebouncedApply(
+        StoredControl(enabled = false, tunnelName = "office"),
+        now,
+      ),
+    )
+  }
+
+  @Test
   fun permanentOffStopsMonitor() {
     assertEquals(
       NetworkMonitorMode.STOPPED,

@@ -13,6 +13,7 @@ import com.wirepilot.app.control.LogFormatter
 import com.wirepilot.app.data.LogKind
 import com.wirepilot.app.control.NetworkChangeCoordinator
 import com.wirepilot.app.control.NetworkMonitorCoordinator
+import com.wirepilot.app.control.NetworkMonitorPolicy
 import com.wirepilot.app.control.NetworkMonitorRuntime
 import com.wirepilot.app.control.PauseExpiryCoordinator
 import com.wirepilot.app.control.PauseRescheduler
@@ -84,7 +85,9 @@ class AppContainer(
       LogFormatter.networkChangeDetail(snapshot, ssidHmacKey) +
         " source=callback inventory=${inventory.links().size}",
     )
-    debouncer.scheduleDebouncedApply()
+    if (NetworkMonitorPolicy.shouldScheduleDebouncedApply(store.read(), System.currentTimeMillis())) {
+      debouncer.scheduleDebouncedApply()
+    }
     networkUiListeners.forEach { listener -> listener() }
   }.also { watcher ->
     watcher.startLive()
