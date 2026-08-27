@@ -45,7 +45,6 @@ class AppContainer(
   val ssidReader = SsidReader(
     inventory = inventory,
     connectivityManager = appContext.getSystemService(android.net.ConnectivityManager::class.java),
-    readiness = { SsidReadinessReader.read(appContext) },
     lastKnown = LastKnownSsid(
       store = SharedPreferencesLastKnownSsidStore(encryptedSsids),
       clock = { System.currentTimeMillis() },

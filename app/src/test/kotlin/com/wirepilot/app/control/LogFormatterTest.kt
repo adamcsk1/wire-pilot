@@ -87,8 +87,8 @@ class LogFormatterTest {
   }
 
   @Test
-  fun applyOmitsProbeAndRedactsSsid() {
-    val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"), probe = "nearby=T fine=T locOn=T")
+  fun applyRedactsSsid() {
+    val network = NetworkSnapshot(NetworkKind.WIFI, setOf("Home"))
     assertEquals(
       "trigger=apply apply=up via=go-backend net=WIFI ssid=${SsidRedactor.redact("Home")} tunnel=office ssidSource=none",
       LogFormatter.applyDetail(

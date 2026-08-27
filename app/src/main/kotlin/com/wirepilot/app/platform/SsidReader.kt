@@ -7,13 +7,10 @@ import com.wirepilot.app.control.LastKnownSsid
 import com.wirepilot.app.control.LastKnownRememberPolicy
 import com.wirepilot.app.control.NetworkKind
 import com.wirepilot.app.control.NetworkSnapshot
-import com.wirepilot.app.control.SsidProbeFormatter
-import com.wirepilot.app.control.SsidReadiness
 
 class SsidReader(
   private val inventory: NetworkInventory,
   private val connectivityManager: ConnectivityManager,
-  private val readiness: () -> SsidReadiness,
   private val lastKnown: LastKnownSsid,
 ) {
   private var rememberedReadableRevision = 0L
@@ -27,24 +24,18 @@ class SsidReader(
       observationState.observations.map { observation -> observation.link },
       ssidSource = "transport",
     )
-    val withProbe = snapshot.copy(
-      probe = SsidProbeFormatter.format(
-        readiness = readiness(),
-        links = observationState.observations.map { observation -> observation.probe },
-      ),
-    )
-    if (withProbe.kind == NetworkKind.WIFI) {
+    if (snapshot.kind == NetworkKind.WIFI) {
       if (LastKnownRememberPolicy.shouldRemember(
-          snapshot = withProbe,
+          snapshot = snapshot,
           readableRevision = observationState.readableRevision,
           rememberedRevision = rememberedReadableRevision,
         )) {
-        lastKnown.remember(withProbe)
+        lastKnown.remember(snapshot)
         rememberedReadableRevision = observationState.readableRevision
       }
-      return withProbe
+      return snapshot
     }
-    return lastKnown.takeIfSettling(withProbe)
+    return lastKnown.takeIfSettling(snapshot)
   }
 
   private fun refreshKnownNetworks() {

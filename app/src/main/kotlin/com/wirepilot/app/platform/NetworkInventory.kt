@@ -9,7 +9,6 @@ import com.wirepilot.app.control.NetworkObservationLedger
 import com.wirepilot.app.control.NetworkObservationProjector
 import com.wirepilot.app.control.NetworkObservationState
 import com.wirepilot.app.control.NetworkTransportObservation
-import com.wirepilot.app.control.SsidProbeLink
 
 class NetworkInventory {
   private val observations = NetworkObservationLedger<Network>()
@@ -42,10 +41,6 @@ class NetworkInventory {
 
   fun links(): List<InventoryLink> {
     return observations.values().map { observation -> observation.link }
-  }
-
-  fun probeLinks(): List<SsidProbeLink> {
-    return observations.values().map { observation -> observation.probe }
   }
 
   fun state(): NetworkObservationState = observations.state()

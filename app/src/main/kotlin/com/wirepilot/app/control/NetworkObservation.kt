@@ -2,6 +2,15 @@ package com.wirepilot.app.control
 
 import com.wirepilot.app.data.SsidNormalizer
 
+data class SsidProbeLink(
+  val wifi: Boolean,
+  val cellular: Boolean,
+  val vpn: Boolean,
+  val transportClass: String,
+  val ssidRaw: String?,
+  val wifiSsidRaw: String?,
+)
+
 data class NetworkObservation(
   val link: InventoryLink,
   val probe: SsidProbeLink,
