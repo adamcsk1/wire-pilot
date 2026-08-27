@@ -28,6 +28,10 @@ class NetworkInventory {
     observations.observe(network, null)
   }
 
+  fun clear() {
+    observations.clear()
+  }
+
   fun beginScan(): NetworkObservationLedger.ScanToken = observations.beginScan()
 
   fun removeMissing(networks: Set<Network>, scanToken: NetworkObservationLedger.ScanToken) {

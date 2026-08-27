@@ -146,6 +146,14 @@ class NetworkObservationLedger<Key> {
   }
 
   @Synchronized
+  fun clear() {
+    observations.clear()
+    revisions.clear()
+    sources.clear()
+    authoritativeRevision += 1L
+  }
+
+  @Synchronized
   fun keys(): Set<Key> = observations.keys.toSet()
 
   @Synchronized

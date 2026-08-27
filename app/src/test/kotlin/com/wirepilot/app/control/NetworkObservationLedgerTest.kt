@@ -185,6 +185,31 @@ class NetworkObservationLedgerTest {
   }
 
   @Test
+  fun clearDropsObservationsAndInvalidatesInFlightRefresh() {
+    val ledger = NetworkObservationLedger<String>()
+    ledger.observe("wifi", observation("Home"))
+    val inFlight = ledger.beginRefresh("wifi")
+
+    ledger.clear()
+    ledger.refresh("wifi", inFlight, observation("Home"))
+
+    assertEquals(emptySet(), ledger.keys())
+  }
+
+  @Test
+  fun clearInvalidatesInFlightScan() {
+    val ledger = NetworkObservationLedger<String>()
+    val scan = ledger.beginScan()
+    ledger.observe("wifi", observation("Home"))
+
+    ledger.clear()
+    ledger.observe("cafe", observation("Cafe"))
+    ledger.removeMissing(emptySet(), scan)
+
+    assertEquals(setOf("cafe"), ledger.keys())
+  }
+
+  @Test
   fun currentScanRemovesMissingNetworks() {
     val ledger = NetworkObservationLedger<String>()
     ledger.observe("home", observation("Home"))

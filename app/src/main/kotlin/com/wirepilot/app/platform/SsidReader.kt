@@ -22,7 +22,6 @@ class SsidReader(
   fun snapshot(): NetworkSnapshot {
     lastKnown.expireIfStale()
     refreshKnownNetworks()
-    offer(connectivityManager.activeNetwork)
     val observationState = inventory.state()
     val snapshot = InventoryMapper.toSnapshot(
       observationState.observations.map { observation -> observation.link },
@@ -49,7 +48,14 @@ class SsidReader(
   }
 
   private fun refreshKnownNetworks() {
-    inventory.networks().forEach { network -> refresh(network) }
+    val scan = inventory.beginScan()
+    val present = linkedSetOf<Network>()
+    currentNetworks().forEach { network ->
+      present += network
+      refresh(network)
+    }
+    offerPresent(connectivityManager.activeNetwork, present)
+    inventory.removeMissing(present, scan)
   }
 
   private fun refresh(network: Network) {
@@ -58,8 +64,13 @@ class SsidReader(
     inventory.observeRefresh(network, revision, capabilities)
   }
 
-  private fun offer(network: Network?) {
-    if (network == null) {
+  @Suppress("DEPRECATION")
+  private fun currentNetworks(): Array<Network> {
+    return connectivityManager.allNetworks
+  }
+
+  private fun offerPresent(network: Network?, present: MutableSet<Network>) {
+    if (network == null || !present.add(network)) {
       return
     }
     refresh(network)

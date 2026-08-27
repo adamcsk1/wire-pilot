@@ -50,6 +50,7 @@ class NetworkWatcher(
 
   @Synchronized
   fun restartLive() {
+    inventory.clear()
     liveRegistered = false
     registerLiveCallbacks()
     liveRegistered = true
