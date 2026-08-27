@@ -1,5 +1,8 @@
 package com.wirepilot.app
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -8,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.PackageManagerCompat
 import androidx.core.content.UnusedAppRestrictionsConstants
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
@@ -75,6 +79,8 @@ class SettingsActivity : AppCompatActivity() {
     findViewById<MaterialButton>(R.id.vpnSettingsButton).setOnClickListener {
       openSystemSettings(SystemSettingsTarget.VPN)
     }
+    findViewById<MaterialButton>(R.id.githubLink).setOnClickListener { openGitHub() }
+    findViewById<TextView>(R.id.appVersion).text = getString(R.string.settings_version, appVersionName())
     appLockSwitch.setOnCheckedChangeListener { _, checked ->
       if (suppressLockSwitch) {
         return@setOnCheckedChangeListener
@@ -210,5 +216,19 @@ class SettingsActivity : AppCompatActivity() {
     if (!settingsNavigator.open(target)) {
       Toast.makeText(this, R.string.settings_unavailable, Toast.LENGTH_SHORT).show()
     }
+  }
+
+  private fun openGitHub() {
+    val intent = Intent(Intent.ACTION_VIEW, getString(R.string.github_project_url).toUri())
+    try {
+      startActivity(intent)
+    } catch (_: ActivityNotFoundException) {
+      Toast.makeText(this, R.string.settings_unavailable, Toast.LENGTH_SHORT).show()
+    }
+  }
+
+  private fun appVersionName(): String {
+    val info = packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+    return info.versionName.orEmpty()
   }
 }

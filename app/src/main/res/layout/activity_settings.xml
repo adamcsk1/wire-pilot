@@ -341,6 +341,60 @@
             android:textColor="@color/on_surface" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
+
+      <com.google.android.material.card.MaterialCardView
+        android:id="@+id/sourceCodeCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="@color/surface_card"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="16dp">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_github_section"
+            android:textColor="@color/on_surface"
+            android:textStyle="bold" />
+
+          <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/settings_github_hint"
+            android:textColor="@color/on_surface_muted"
+            android:textSize="13sp" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/githubLink"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/settings_github"
+            app:icon="@drawable/ic_open_in_new"
+            app:iconGravity="end" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <TextView
+        android:id="@+id/appVersion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:padding="8dp"
+        android:textColor="@color/on_surface_muted"
+        android:textSize="13sp" />
     </LinearLayout>
   </ScrollView>
 </LinearLayout>

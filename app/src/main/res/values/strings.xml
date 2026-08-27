@@ -208,4 +208,9 @@
   <string name="use_pin">Use PIN</string>
   <string name="biometric_unlock">Unlock with biometrics</string>
   <string name="settings_title">Settings</string>
+  <string name="settings_github_section">Source code</string>
+  <string name="settings_github_hint">View the WirePilot source and issues on GitHub.</string>
+  <string name="settings_github">Open GitHub repository</string>
+  <string name="github_project_url" translatable="false">https://github.com/adamcsk1/wire-pilot</string>
+  <string name="settings_version">Version %1$s</string>
 </resources>
