@@ -2,6 +2,7 @@ package com.wirepilot.app.platform
 
 import android.content.Context
 import com.wirepilot.app.control.ConfigZipNames
+import com.wirepilot.app.control.LeftoverPlaintextConf
 import com.wirepilot.app.data.TunnelCatalog
 import java.io.File
 import java.io.IOException
@@ -16,6 +17,10 @@ class FileTunnelCatalog(
   private val stagingDirectory = File(directory, ".staging").apply { mkdirs() }
   private val files = TinkEncryptedFiles(appContext)
 
+  init {
+    encryptLeftoverPlaintext()
+  }
+
   override fun names(): List<String> {
     return directory.listFiles()
       ?.mapNotNull { file -> ConfigZipNames.tunnelNameFromPath(file.name) }
@@ -29,16 +34,6 @@ class FileTunnelCatalog(
       readEncrypted(file)?.let { plaintext ->
         siblingTemp(file).delete()
         return plaintext
-      }
-      val plaintext = runCatching { file.readText() }.getOrNull()
-      if (plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null) {
-        siblingTemp(file).delete()
-        return try {
-          writeEncrypted(file, plaintext)
-          plaintext
-        } catch (_: IOException) {
-          null
-        }
       }
       recoverLegacyTempAad(file)?.let { return it }
     }
@@ -62,6 +57,23 @@ class FileTunnelCatalog(
       return null
     }
     return File(directory, ConfigZipNames.fileName(name))
+  }
+
+  private fun encryptLeftoverPlaintext() {
+    directory.listFiles()?.forEach { file ->
+      if (!file.isFile || ConfigZipNames.tunnelNameFromPath(file.name) == null) {
+        return@forEach
+      }
+      if (readEncrypted(file) != null) {
+        return@forEach
+      }
+      val plaintext = runCatching { file.readText() }.getOrNull()
+      val plaintextParses = plaintext != null && ConfigZipIO.parseOrNull(plaintext) != null
+      if (!LeftoverPlaintextConf.shouldEncrypt(encryptedReadable = false, plaintextParses) || plaintext == null) {
+        return@forEach
+      }
+      runCatching { writeEncrypted(file, plaintext) }
+    }
   }
 
   private fun readEncrypted(file: File): String? {
