@@ -65,6 +65,17 @@
             android:layout_marginTop="6dp"
             android:textColor="@color/on_surface"
             android:textSize="14sp" />
+
+          <TextView
+            android:id="@+id/statusVpnBlocker"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:textColor="@color/copper"
+            android:textSize="14sp"
+            android:visibility="gone" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 

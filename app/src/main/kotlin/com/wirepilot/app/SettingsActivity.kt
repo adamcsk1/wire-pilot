@@ -49,6 +49,7 @@ class SettingsActivity : AppCompatActivity() {
   private lateinit var locationSettingsStatus: TextView
   private lateinit var batteryOptimizationStatus: TextView
   private lateinit var unusedAppsStatusView: TextView
+  private lateinit var vpnPermissionStatus: TextView
   private var unusedAppsStatus = SettingsRowStatus.UNKNOWN
   private var suppressLockSwitch = false
   private var suppressBiometricSwitch = false
@@ -80,6 +81,7 @@ class SettingsActivity : AppCompatActivity() {
     locationSettingsStatus = findViewById(R.id.locationSettingsStatus)
     batteryOptimizationStatus = findViewById(R.id.batteryOptimizationStatus)
     unusedAppsStatusView = findViewById(R.id.unusedAppsStatus)
+    vpnPermissionStatus = findViewById(R.id.vpnPermissionStatus)
     findViewById<MaterialToolbar>(R.id.settingsToolbar).setNavigationOnClickListener {
       onBackPressedDispatcher.onBackPressed()
     }
@@ -162,6 +164,7 @@ class SettingsActivity : AppCompatActivity() {
     bindOnOff(locationSettingsStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.locationEnabled(this)))
     bindBattery(batteryOptimizationStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.batteryUnrestricted(this)))
     bindUnused(unusedAppsStatusView, unusedAppsStatus)
+    bindOnOff(vpnPermissionStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.vpnConsentGranted(this)))
   }
 
   private fun refreshUnusedAppsStatus() {

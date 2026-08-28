@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.net.VpnService
 import android.os.PowerManager
 import androidx.core.content.ContextCompat
 
@@ -27,5 +28,9 @@ object AppPermissions {
   fun batteryUnrestricted(context: Context): Boolean {
     return context.getSystemService(PowerManager::class.java)
       .isIgnoringBatteryOptimizations(context.packageName)
+  }
+
+  fun vpnConsentGranted(context: Context): Boolean {
+    return VpnService.prepare(context) == null
   }
 }

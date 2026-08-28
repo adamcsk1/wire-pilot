@@ -73,6 +73,8 @@
   <string name="export_success">Export saved. Keep this ZIP private — it contains private keys.</string>
   <string name="export_failed">Could not export</string>
   <string name="vpn_prepare_needed">Allow the VPN connection</string>
+  <string name="vpn_blocker_other_vpn">Another VPN is connected. Disconnect it in VPN settings. If an app is always-on, that also blocks WirePilot.</string>
+  <string name="settings_vpn_permission">VPN permission</string>
   <string name="ssid_section">Skip VPN on these SSIDs</string>
   <string name="ssid_empty">No networks excluded. Tunnel stays up except on networks you add here.</string>
   <string name="add_current_ssid">Add current: %1$s</string>
@@ -145,7 +147,7 @@
   <string name="keep_running_section">Keep running</string>
   <string name="keep_running_hint">Optional. Helps after reboot or OEM kills. Unrestricted battery is recommended, not required for the tunnel itself. Some phones also need Autostart in App info.</string>
   <string name="always_on_section">Always-on VPN</string>
-  <string name="always_on_hint">Optional. The OS can restart the VPN after a kill or reboot. Control still decides when the tunnel is up or down.</string>
+  <string name="always_on_hint">Optional. The OS can restart the VPN after a kill or reboot. Control still decides when the tunnel is up or down. If another app is always-on, WirePilot cannot start.</string>
   <string name="open_app_info">App info (autostart)</string>
   <string name="open_battery_optimization">Battery optimization</string>
   <string name="open_unused_apps">Unused app restrictions</string>

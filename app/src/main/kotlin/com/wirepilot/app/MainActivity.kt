@@ -2,8 +2,11 @@ package com.wirepilot.app
 
 import android.Manifest
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.VpnService
 import android.os.Bundle
+import android.os.Process
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.TextView
@@ -27,6 +30,10 @@ import com.wirepilot.app.control.SsidReadiness
 import com.wirepilot.app.control.SsidReadinessEvaluator
 import com.wirepilot.app.control.SkipReason
 import com.wirepilot.app.control.StatusPresentation
+import com.wirepilot.app.control.SystemSettingsTarget
+import com.wirepilot.app.control.VpnBlocker
+import com.wirepilot.app.control.VpnBlockerPresenter
+import com.wirepilot.app.platform.SettingsNavigator
 import com.wirepilot.app.ui.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
@@ -36,6 +43,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var statusTitle: TextView
   private lateinit var statusDetail: TextView
   private lateinit var statusPolicy: TextView
+  private lateinit var statusVpnBlocker: TextView
   private lateinit var activeTunnelLabel: TextView
   private lateinit var manageTunnelsButton: MaterialButton
   private lateinit var controlSwitch: MaterialSwitch
@@ -140,6 +148,7 @@ class MainActivity : AppCompatActivity() {
     statusTitle = findViewById(R.id.statusTitle)
     statusDetail = findViewById(R.id.statusDetail)
     statusPolicy = findViewById(R.id.statusPolicy)
+    statusVpnBlocker = findViewById(R.id.statusVpnBlocker)
     activeTunnelLabel = findViewById(R.id.activeTunnelLabel)
     manageTunnelsButton = findViewById(R.id.manageTunnelsButton)
     controlSwitch = findViewById(R.id.controlSwitch)
@@ -200,9 +209,54 @@ class MainActivity : AppCompatActivity() {
     }
     bindStatus(state.status)
     statusPolicy.text = policyLineText(state.policyLine)
+    bindVpnBlocker(state)
     bindControlSwitch(state)
     bindVpnSwitch(state)
     bindApplyNow(state)
+  }
+
+  private fun bindVpnBlocker(state: HomeViewState) {
+    val blocker = VpnBlockerPresenter.present(
+      policyKind = state.policyLine.kind,
+      vpnConnected = state.vpnConnected,
+      consentGranted = AppPermissions.vpnConsentGranted(this),
+      otherVpnActive = otherVpnActive(),
+    )
+    if (blocker == null) {
+      statusVpnBlocker.isVisible = false
+      statusVpnBlocker.setOnClickListener(null)
+      return
+    }
+    statusVpnBlocker.isVisible = true
+    statusVpnBlocker.setText(
+      when (blocker) {
+        VpnBlocker.CONSENT_MISSING -> R.string.vpn_prepare_needed
+        VpnBlocker.OTHER_VPN -> R.string.vpn_blocker_other_vpn
+      },
+    )
+    statusVpnBlocker.setOnClickListener {
+      when (blocker) {
+        VpnBlocker.CONSENT_MISSING -> applyWithVpnConsent()
+        VpnBlocker.OTHER_VPN -> openVpnSettings()
+      }
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun otherVpnActive(): Boolean {
+    val connectivityManager = getSystemService(ConnectivityManager::class.java)
+    val myUid = Process.myUid()
+    return connectivityManager.allNetworks.any { network ->
+      val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return@any false
+      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+        capabilities.ownerUid != myUid
+    }
+  }
+
+  private fun openVpnSettings() {
+    if (!SettingsNavigator(this).open(SystemSettingsTarget.VPN)) {
+      Toast.makeText(this, R.string.settings_unavailable, Toast.LENGTH_SHORT).show()
+    }
   }
 
   private fun bindStatus(status: StatusPresentation) {
