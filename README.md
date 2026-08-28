@@ -1,8 +1,20 @@
 # WirePilot
 
+[![CI](https://github.com/adamcsk1/wire-pilot/actions/workflows/ci.yml/badge.svg)](https://github.com/adamcsk1/wire-pilot/actions/workflows/ci.yml)
+
+<p align="center">
+  <img src="docs/logo.svg" width="64" alt="WirePilot">
+</p>
+
 WirePilot is a single-purpose Android VPN. It embeds the official [`com.wireguard.android:tunnel`](https://git.zx2c4.com/wireguard-android) library and turns the tunnel up or down from Wi‑Fi SSID rules.
 
 It does **not** talk to the official WireGuard app.
+
+## Screenshots
+
+| Home | Tunnels | Skip SSIDs |
+| --- | --- | --- |
+| ![Home](docs/home.png) | ![Tunnels](docs/tunnels.png) | ![Skip SSIDs](docs/skip-ssids.png) |
 
 ## Requirements
 
