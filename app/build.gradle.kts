@@ -13,7 +13,7 @@ val versionCodeTimestamp: Int = ZonedDateTime.now(ZoneOffset.UTC)
 
 val appVersionName: String = providers.gradleProperty("appVersionName")
   .orElse(providers.environmentVariable("VERSION_NAME"))
-  .orElse("1.0.1")
+  .orElse("1.0.2")
   .get()
 
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
