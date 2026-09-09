@@ -4,6 +4,14 @@
   <string name="status_watching_detail">Tunnel follows SSID rules after network changes and boot.</string>
   <string name="monitor_notification_title">WirePilot is active</string>
   <string name="monitor_notification_watching">Monitoring network names for VPN rules</string>
+  <string name="monitor_notification_limited">Background Wi-Fi rules are limited. Open WirePilot to review permissions and Location settings.</string>
+  <string name="background_monitoring_warning">Background / reboot monitoring is limited. Review settings</string>
+  <string name="background_location_title">Background location access</string>
+  <string name="background_location_hint">Needed to read Wi-Fi names after a restart and while WirePilot is closed. Without it, Wi-Fi rules may not apply until you open the app. Unreadable Wi-Fi names leave the VPN unchanged.</string>
+  <string name="background_location_settings_hint">WirePilot needs background location access to read Wi-Fi names and apply VPN rules after a restart and while the app is closed. In Android Settings, open Permissions &gt; Location, select "%1$s", and keep "Use precise location" enabled. You can choose Not now; background Wi-Fi rules will remain limited.</string>
+  <string name="precise_location_settings_hint">Precise location is needed first to read Wi-Fi names. In Android Settings, open Permissions &gt; Location, allow access while using the app, and enable "Use precise location". Then return and tap Background location access to continue.</string>
+  <string name="open_app_permissions">Open Android settings</string>
+  <string name="not_now">Not now</string>
   <string name="monitor_channel_name">Network monitoring</string>
   <string name="monitor_channel_description">Keeps automatic VPN control responsive to network changes</string>
   <string name="status_disabled">Control off</string>

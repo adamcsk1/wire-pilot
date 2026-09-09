@@ -76,6 +76,15 @@
             android:textColor="@color/copper"
             android:textSize="14sp"
             android:visibility="gone" />
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/backgroundMonitoringWarning"
+            style="@style/Widget.WirePilot.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/background_monitoring_warning"
+            android:visibility="gone" />
         </LinearLayout>
       </com.google.android.material.card.MaterialCardView>
 

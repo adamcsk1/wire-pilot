@@ -6,23 +6,29 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.location.LocationManager
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.wirepilot.app.MainActivity
+import com.wirepilot.app.SettingsActivity
 import com.wirepilot.app.R
 import com.wirepilot.app.WirePilotApp
-import com.wirepilot.app.control.NetworkMonitorMode
 import com.wirepilot.app.control.NetworkMonitorServiceRuntime
 import com.wirepilot.app.control.NetworkMonitorServiceStart
-import com.wirepilot.app.ui.AppPermissions
 
 class NetworkMonitorService : Service() {
   private val container
     get() = (application as WirePilotApp).container
+  private val locationModeReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      container.networkMonitorCoordinator.reconcile()
+    }
+  }
   private val runtime by lazy {
     NetworkMonitorServiceRuntime(
       registerFallbacks = { container.networkWatcher.registerFallbacks() },
@@ -38,11 +44,22 @@ class NetworkMonitorService : Service() {
   override fun onCreate() {
     super.onCreate()
     ensureChannel()
-    enterForeground()
+    ContextCompat.registerReceiver(
+      this,
+      locationModeReceiver,
+      IntentFilter(LocationManager.MODE_CHANGED_ACTION),
+      ContextCompat.RECEIVER_NOT_EXPORTED,
+    )
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    enterForeground()
+    if (!enterForeground(foregroundTypes()) &&
+      !enterForeground(ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+    ) {
+      container.locationForegroundActive = false
+      stopSelf(startId)
+      return START_NOT_STICKY
+    }
     val mode = container.networkMonitorCoordinator.currentMode()
     return when (runtime.onStart(mode, startId)) {
       NetworkMonitorServiceStart.STICKY -> START_STICKY
@@ -52,22 +69,22 @@ class NetworkMonitorService : Service() {
 
   override fun onBind(intent: Intent?): IBinder? = null
 
-  private fun enterForeground() {
-    try {
-      startForeground(NOTIFICATION_ID, notification(), foregroundTypes())
-    } catch (_: SecurityException) {
-      enterSpecialUseForeground()
-    } catch (_: ForegroundServiceStartNotAllowedException) {
-      enterSpecialUseForeground()
-    }
+  override fun onDestroy() {
+    unregisterReceiver(locationModeReceiver)
+    container.locationForegroundActive = false
+    super.onDestroy()
   }
 
-  private fun enterSpecialUseForeground() {
-    startForeground(
-      NOTIFICATION_ID,
-      notification(),
-      ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-    )
+  private fun enterForeground(types: Int): Boolean {
+    return try {
+      startForeground(NOTIFICATION_ID, notification(), types)
+      container.locationForegroundActive = types and ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION != 0
+      true
+    } catch (_: SecurityException) {
+      false
+    } catch (_: ForegroundServiceStartNotAllowedException) {
+      false
+    }
   }
 
   private fun foregroundTypes(): Int {
@@ -95,13 +112,19 @@ class NetworkMonitorService : Service() {
     val contentIntent = PendingIntent.getActivity(
       this,
       0,
-      Intent(this, MainActivity::class.java),
+      Intent(this, SettingsActivity::class.java),
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
     return NotificationCompat.Builder(this, CHANNEL_ID)
       .setSmallIcon(R.drawable.ic_stat_monitor)
       .setContentTitle(getString(R.string.monitor_notification_title))
-      .setContentText(getString(R.string.monitor_notification_watching))
+      .setContentText(getString(
+        if (AppPermissions.backgroundMonitoringLimited(this, container.locationForegroundActive)) {
+          R.string.monitor_notification_limited
+        } else {
+          R.string.monitor_notification_watching
+        },
+      ))
       .setContentIntent(contentIntent)
       .setOngoing(true)
       .setSilent(true)

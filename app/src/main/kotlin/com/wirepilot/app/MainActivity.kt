@@ -34,7 +34,7 @@ import com.wirepilot.app.control.SystemSettingsTarget
 import com.wirepilot.app.control.VpnBlocker
 import com.wirepilot.app.control.VpnBlockerPresenter
 import com.wirepilot.app.platform.SettingsNavigator
-import com.wirepilot.app.ui.AppPermissions
+import com.wirepilot.app.platform.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
 class MainActivity : AppCompatActivity() {
@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
   private lateinit var statusDetail: TextView
   private lateinit var statusPolicy: TextView
   private lateinit var statusVpnBlocker: TextView
+  private lateinit var backgroundMonitoringWarning: MaterialButton
   private lateinit var activeTunnelLabel: TextView
   private lateinit var manageTunnelsButton: MaterialButton
   private lateinit var controlSwitch: MaterialSwitch
@@ -149,6 +150,7 @@ class MainActivity : AppCompatActivity() {
     statusDetail = findViewById(R.id.statusDetail)
     statusPolicy = findViewById(R.id.statusPolicy)
     statusVpnBlocker = findViewById(R.id.statusVpnBlocker)
+    backgroundMonitoringWarning = findViewById(R.id.backgroundMonitoringWarning)
     activeTunnelLabel = findViewById(R.id.activeTunnelLabel)
     manageTunnelsButton = findViewById(R.id.manageTunnelsButton)
     controlSwitch = findViewById(R.id.controlSwitch)
@@ -160,6 +162,9 @@ class MainActivity : AppCompatActivity() {
   }
 
   private fun bindActions() {
+    backgroundMonitoringWarning.setOnClickListener {
+      startActivity(Intent(this, SettingsActivity::class.java))
+    }
     manageTunnelsButton.setOnClickListener {
       startActivity(Intent(this, TunnelsActivity::class.java))
     }
@@ -213,6 +218,11 @@ class MainActivity : AppCompatActivity() {
     bindControlSwitch(state)
     bindVpnSwitch(state)
     bindApplyNow(state)
+    backgroundMonitoringWarning.isVisible = state.controlSelection != ControlSelection.OFF &&
+      AppPermissions.backgroundMonitoringLimited(
+        this,
+        (application as WirePilotApp).container.locationForegroundActive,
+      )
   }
 
   private fun bindVpnBlocker(state: HomeViewState) {

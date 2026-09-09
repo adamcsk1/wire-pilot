@@ -20,7 +20,7 @@ import com.wirepilot.app.control.HomeController
 import com.wirepilot.app.control.SsidBlocker
 import com.wirepilot.app.control.SsidReadiness
 import com.wirepilot.app.control.SsidReadinessEvaluator
-import com.wirepilot.app.ui.AppPermissions
+import com.wirepilot.app.platform.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
 class TunnelNetworksActivity : AppCompatActivity() {

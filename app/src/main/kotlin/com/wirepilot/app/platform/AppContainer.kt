@@ -98,6 +98,11 @@ class AppContainer(
     log = logger,
   )
   private val networkUiListeners = CopyOnWriteArraySet<() -> Unit>()
+  var locationForegroundActive = false
+    set(value) {
+      field = value
+      networkUiListeners.forEach { listener -> listener() }
+    }
   val networkWatcher = NetworkWatcher(appContext, inventory) {
     val snapshot = ssidReader.snapshot()
     logger.record(

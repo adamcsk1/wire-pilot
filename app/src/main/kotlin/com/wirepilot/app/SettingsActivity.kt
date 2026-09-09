@@ -10,6 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.PackageManagerCompat
 import androidx.core.content.UnusedAppRestrictionsConstants
@@ -19,6 +20,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.wirepilot.app.control.AppLockSession
+import com.wirepilot.app.control.LocationPermissionStep
 import com.wirepilot.app.control.UpdateCheckDecision
 import com.wirepilot.app.data.ThemeMode
 import com.wirepilot.app.control.SettingsRowStatus
@@ -30,7 +32,7 @@ import com.wirepilot.app.platform.AppCompatThemeMode
 import com.wirepilot.app.platform.BiometricAvailability
 import com.wirepilot.app.platform.SettingsNavigator
 import com.wirepilot.app.platform.UpdateCheckRunner
-import com.wirepilot.app.ui.AppPermissions
+import com.wirepilot.app.platform.AppPermissions
 import com.wirepilot.app.ui.SystemBarInsets
 
 class SettingsActivity : AppCompatActivity() {
@@ -45,6 +47,7 @@ class SettingsActivity : AppCompatActivity() {
   private lateinit var updateNotifySwitch: MaterialSwitch
   private lateinit var checkUpdatesButton: MaterialButton
   private lateinit var locationPermissionStatus: TextView
+  private lateinit var backgroundLocationStatus: TextView
   private lateinit var nearbyWifiStatus: TextView
   private lateinit var locationSettingsStatus: TextView
   private lateinit var batteryOptimizationStatus: TextView
@@ -55,6 +58,12 @@ class SettingsActivity : AppCompatActivity() {
   private var suppressBiometricSwitch = false
   private var suppressThemeSelection = false
   private var suppressUpdateNotifySwitch = false
+  private val locationPermissionLauncher = registerForActivityResult(
+    ActivityResultContracts.RequestMultiplePermissions(),
+  ) {
+    refreshMonitoring()
+    showLocationSettingsGuidance()
+  }
   private val notifyPermissionLauncher = registerForActivityResult(
     ActivityResultContracts.RequestPermission(),
   ) { granted ->
@@ -77,6 +86,16 @@ class SettingsActivity : AppCompatActivity() {
     updateNotifySwitch = findViewById(R.id.updateNotifySwitch)
     checkUpdatesButton = findViewById(R.id.checkUpdatesButton)
     locationPermissionStatus = findViewById(R.id.locationPermissionStatus)
+    backgroundLocationStatus = findViewById(R.id.backgroundLocationStatus)
+    findViewById<MaterialButton>(R.id.backgroundLocationButton).setOnClickListener {
+      if (AppPermissions.locationPermissionStep(this) == LocationPermissionStep.PRECISE_LOCATION) {
+        locationPermissionLauncher.launch(
+          arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
+        )
+      } else {
+        showLocationSettingsGuidance()
+      }
+    }
     nearbyWifiStatus = findViewById(R.id.nearbyWifiStatus)
     locationSettingsStatus = findViewById(R.id.locationSettingsStatus)
     batteryOptimizationStatus = findViewById(R.id.batteryOptimizationStatus)
@@ -139,8 +158,35 @@ class SettingsActivity : AppCompatActivity() {
 
   override fun onResume() {
     super.onResume()
+    refreshMonitoring()
     refreshUnusedAppsStatus()
     refreshUi()
+  }
+
+  private fun refreshMonitoring() {
+    val container = (application as WirePilotApp).container
+    container.networkMonitorCoordinator.reconcile()
+    container.restartLiveIfSsidUnreadable()
+    refreshUi()
+  }
+
+  private fun showLocationSettingsGuidance() {
+    val message = when (AppPermissions.locationPermissionStep(this)) {
+      LocationPermissionStep.PRECISE_LOCATION -> getString(R.string.precise_location_settings_hint)
+      LocationPermissionStep.BACKGROUND_LOCATION -> getString(
+        R.string.background_location_settings_hint,
+        packageManager.backgroundPermissionOptionLabel,
+      )
+      LocationPermissionStep.COMPLETE -> return
+    }
+    AlertDialog.Builder(this)
+      .setTitle(R.string.background_location_title)
+      .setMessage(message)
+      .setPositiveButton(R.string.open_app_permissions) { _, _ ->
+        openSystemSettings(SystemSettingsTarget.APP_INFO)
+      }
+      .setNegativeButton(R.string.not_now, null)
+      .show()
   }
 
   private fun refreshUi() {
@@ -160,6 +206,7 @@ class SettingsActivity : AppCompatActivity() {
     updateNotifySwitch.isChecked = updateChecks.read().notifyEnabled
     suppressUpdateNotifySwitch = false
     bindOnOff(locationPermissionStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.fineLocationGranted(this)))
+    bindOnOff(backgroundLocationStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.backgroundLocationGranted(this)))
     bindOnOff(nearbyWifiStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.nearbyWifiGranted(this)))
     bindOnOff(locationSettingsStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.locationEnabled(this)))
     bindBattery(batteryOptimizationStatus, SettingsRowStatusPresenter.fromFlag(AppPermissions.batteryUnrestricted(this)))
