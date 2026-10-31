@@ -81,7 +81,7 @@ android {
 }
 
 jacoco {
-  toolVersion = "0.8.13"
+  toolVersion = "0.8.16"
 }
 
 val jacocoCoverageIncludes = listOf(
@@ -177,13 +177,13 @@ fun coverageClassTree(): ConfigurableFileTree {
 
 dependencies {
   coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-  implementation("androidx.core:core-ktx:1.19.0")
+  implementation("androidx.core:core-ktx:1.19.1")
   implementation("androidx.appcompat:appcompat:1.8.0")
   implementation("com.google.android.material:material:1.14.0")
   implementation("androidx.recyclerview:recyclerview:1.4.0")
   implementation("com.wireguard.android:tunnel:1.0.20260102")
-  implementation("com.google.crypto.tink:tink-android:1.23.0")
+  implementation("com.google.crypto.tink:tink-android:1.24.0")
   implementation("androidx.biometric:biometric:1.1.0")
   implementation("androidx.lifecycle:lifecycle-process:2.11.0")
-  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.2.21")
+  testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.4.21")
 }
