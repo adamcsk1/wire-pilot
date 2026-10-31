@@ -33,7 +33,6 @@ class UpdateCheckPolicyTest {
   fun newerRemoteNotifiesWhenEnabled() {
     val decision = decide(remote = "1.0.1")
     assertTrue(decision is UpdateCheckDecision.Available)
-    decision as UpdateCheckDecision.Available
     assertEquals("1.0.1", decision.tagName)
     assertEquals("https://github.com/adamcsk1/wire-pilot/releases/tag/1.0.1", decision.htmlUrl)
     assertTrue(decision.notify)
@@ -43,7 +42,7 @@ class UpdateCheckPolicyTest {
   fun newerRemoteDoesNotNotifyWhenDisabled() {
     val decision = decide(remote = "1.0.1", notifyEnabled = false)
     assertTrue(decision is UpdateCheckDecision.Available)
-    assertFalse((decision as UpdateCheckDecision.Available).notify)
+    assertFalse(decision.notify)
   }
 
   @Test
@@ -58,7 +57,7 @@ class UpdateCheckPolicyTest {
   fun alreadyNotifiedStillShowsOnManualWithoutNotify() {
     val decision = decide(remote = "1.0.1", lastNotifiedTag = "1.0.1", skipIfAlreadyNotified = false)
     assertTrue(decision is UpdateCheckDecision.Available)
-    assertFalse((decision as UpdateCheckDecision.Available).notify)
+    assertFalse(decision.notify)
   }
 
   @Test

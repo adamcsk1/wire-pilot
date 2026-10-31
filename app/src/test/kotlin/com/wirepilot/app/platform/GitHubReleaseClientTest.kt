@@ -13,7 +13,6 @@ class GitHubReleaseClientTest {
     withServer(200, TRUSTED_BODY) { url ->
       val result = GitHubReleaseClient(url).fetchLatest()
       assertTrue(result is GitHubReleaseFetch.Ok)
-      result as GitHubReleaseFetch.Ok
       assertEquals("1.0.1", result.release.tagName)
       assertEquals(
         "https://github.com/adamcsk1/wire-pilot/releases/tag/1.0.1",
