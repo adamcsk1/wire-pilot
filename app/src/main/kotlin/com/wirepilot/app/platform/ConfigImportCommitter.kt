@@ -20,19 +20,25 @@ class ConfigImportCommitter(
         splitTunnels.write(tunnel.name, tunnel.splitTunnel)
       }
       batch.tunnels.map { tunnel -> tunnel.name }
-    } catch (_: Exception) {
-      val restored = snapshots.all { (name, snapshot) ->
+    } catch (error: Exception) {
+      val rollbackFailure = IllegalStateException("Import rollback incomplete", error)
+      snapshots.forEach { (name, snapshot) ->
         runCatching {
           if (snapshot.conf == null) {
             catalog.delete(name)
-            splitTunnels.delete(name)
           } else {
             catalog.writeConf(name, snapshot.conf)
+          }
+        }.onFailure { rollbackFailure.addSuppressed(it) }
+        runCatching {
+          if (snapshot.conf == null) {
+            splitTunnels.delete(name)
+          } else {
             splitTunnels.write(name, snapshot.splitTunnel)
           }
-        }.isSuccess
+        }.onFailure { rollbackFailure.addSuppressed(it) }
       }
-      check(restored)
+      if (rollbackFailure.suppressed.isNotEmpty()) throw rollbackFailure
       emptyList()
     }
   }
