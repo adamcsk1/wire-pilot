@@ -31,7 +31,7 @@ class LastKnownSsid(
 
   fun current(): String? {
     val stored = store.read() ?: return null
-    if (clock() - stored.atMillis > TTL_MILLIS) {
+    if (clock() - stored.atMillis !in 0L..TTL_MILLIS) {
       store.clear()
       return null
     }

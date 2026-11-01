@@ -60,9 +60,37 @@ class LastKnownSsidTest {
   fun survivesNewInstanceOnSameStore() {
     val store = MemoryStore()
     LastKnownSsid(store = store, clock = { 1L }).remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
-    val restored = LastKnownSsid(store = store).takeIfSettling(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
+    val restored = LastKnownSsid(store = store, clock = { 2L }).takeIfSettling(NetworkSnapshot(NetworkKind.WIFI_SETTLING))
     assertEquals(setOf("Home"), restored.wifiSsids)
     assertEquals("lastKnown", restored.ssidSource)
+  }
+
+  @Test
+  fun clockRollbackClearsCacheAndDoesNotRestoreItWhenClockCatchesUp() {
+    var now = 10_000L
+    val store = MemoryStore()
+    val cache = LastKnownSsid(store = store, clock = { now })
+    cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
+    now -= 1L
+    val settling = NetworkSnapshot(NetworkKind.WIFI_SETTLING, hasCellular = true)
+
+    assertEquals(settling, cache.takeIfSettling(settling))
+    assertEquals(null, store.value)
+    now = 10_000L
+    assertEquals(null, cache.current())
+
+    cache.remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Cafe")))
+    assertEquals(setOf("Cafe"), cache.takeIfSettling(settling).wifiSsids)
+  }
+
+  @Test
+  fun newInstanceRejectsPersistedFutureTimestamp() {
+    val store = MemoryStore()
+    LastKnownSsid(store = store, clock = { 10_000L })
+      .remember(NetworkSnapshot(NetworkKind.WIFI, setOf("Home")))
+
+    assertEquals(null, LastKnownSsid(store = store, clock = { 9_000L }).current())
+    assertEquals(null, store.value)
   }
 
   @Test
