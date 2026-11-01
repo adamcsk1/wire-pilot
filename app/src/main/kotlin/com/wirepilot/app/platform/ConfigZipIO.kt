@@ -35,6 +35,7 @@ object ConfigZipIO {
           }
           entryIndex += 1
           if (entry.isDirectory) {
+            if (zip.read() != -1) return null
             continue
           }
           val name = ConfigZipNames.tunnelNameFromPath(entry.name) ?: return null

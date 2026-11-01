@@ -53,6 +53,20 @@ class ConfigZipIOTest {
   }
 
   @Test
+  fun acceptsEmptyDirectoriesBeforeConfigs() {
+    val batch = assertNotNull(ConfigZipIO.readImport(zip("folder/" to "", "folder/office.conf" to config()).inputStream(), true, "backup.zip"))
+
+    assertEquals(listOf("office"), batch.tunnels.map { tunnel -> tunnel.name })
+  }
+
+  @Test
+  fun rejectsDirectoryWithAnyPayload() {
+    for (payload in listOf("x", "x".repeat(ConfigZipLimits.MAX_ENTRY_BYTES + 1))) {
+      assertNull(ConfigZipIO.readImport(zip("folder/" to payload, "office.conf" to config()).inputStream(), true, "backup.zip"))
+    }
+  }
+
+  @Test
   fun readsSingleConfigOnceAndNormalizesIt() {
     val batch = ConfigZipIO.readImport(ByteArrayInputStream(config().toByteArray()), false, "office.conf")
 
