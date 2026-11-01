@@ -9,6 +9,7 @@ import com.wirepilot.app.data.ImportedTunnel
 import com.wirepilot.app.data.StoredSplitTunnel
 import com.wirepilot.app.data.TunnelCatalog
 import java.io.InputStream
+import java.io.IOException
 import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.charset.CodingErrorAction
@@ -70,7 +71,7 @@ object ConfigZipIO {
   ) {
     ZipOutputStream(output).use { zip ->
       names.forEach { name ->
-        val stored = catalog.readConf(name) ?: return@forEach
+        val stored = catalog.readConf(name) ?: throw IOException("Could not read requested tunnel")
         val conf = confFor(name, stored)
         zip.putNextEntry(ZipEntry(ConfigZipNames.fileName(name)))
         zip.write(conf.toByteArray(StandardCharsets.UTF_8))

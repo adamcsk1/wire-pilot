@@ -2,16 +2,56 @@ package com.wirepilot.app.platform
 
 import com.wireguard.crypto.KeyPair
 import com.wirepilot.app.control.ConfigZipLimits
+import com.wirepilot.app.support.InMemoryTunnelCatalog
+import java.io.IOException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ConfigZipIOTest {
+  @Test
+  fun exportFailsWhenAnyRequestedConfigIsUnreadable() {
+    val catalog = InMemoryTunnelCatalog(mapOf("office" to config()))
+
+    for (names in listOf(listOf("missing"), listOf("office", "missing"))) {
+      assertFailsWith<IOException> { ConfigZipIO.exportZip(ByteArrayOutputStream(), catalog, names) }
+    }
+  }
+
+  @Test
+  fun exportPropagatesWriteFailureWithoutChangingSource() {
+    val configs = mapOf("office" to config())
+    val catalog = InMemoryTunnelCatalog(configs)
+    val output = object : java.io.OutputStream() {
+      override fun write(value: Int) {
+        throw IOException("destination unavailable")
+      }
+    }
+
+    assertFailsWith<IOException> { ConfigZipIO.exportZip(output, catalog, listOf("office")) }
+    assertEquals(configs.getValue("office"), catalog.readConf("office"))
+  }
+
+  @Test
+  fun exportedConfigsRoundTripWithoutLoss() {
+    val configs = mapOf("office" to config(), "travel" to config())
+    val output = ByteArrayOutputStream()
+    ConfigZipIO.exportZip(output, InMemoryTunnelCatalog(configs), configs.keys.toList())
+
+    val batch = assertNotNull(ConfigZipIO.readImport(output.toByteArray().inputStream(), true, "backup.zip"))
+
+    assertEquals(configs.keys.toList(), batch.tunnels.map { tunnel -> tunnel.name })
+    batch.tunnels.forEach { tunnel ->
+      assertEquals(ConfigZipIO.parseOrNull(configs.getValue(tunnel.name))!!.toWgQuickString(), tunnel.conf)
+    }
+  }
+
   @Test
   fun readsSingleConfigOnceAndNormalizesIt() {
     val batch = ConfigZipIO.readImport(ByteArrayInputStream(config().toByteArray()), false, "office.conf")
